@@ -16,185 +16,226 @@ using Vector = std::vector<T>;
 template <typename T>
 using Vector2D = Vector<Vector<T>>;
 
-template <typename T>
-Vector2D<T> transpose(const Vector2D<T> & data) {
-	Vector2D<T> resVec(data[0].size(), Vector<T>(data.size()));
+class ColumnVector {
+	ColumnVector(std::initializer_list list) : _matrix(list), _size(_matrix.size()) {}
+	ColumnVector(int size) : _matrix(size), _size(size) {}
 
-	for (auto i = 0; i < data[0].size(); i++) {
-		for (auto j = 0; j < data.size(); j++) {
-			resVec[i][j] = data[j][i];
+	int getSize() {
+		return _size;
+	}
+
+	double getValue(int idx) {
+		return _matrix[idx];
+	}
+
+	inline ColumnVector T() {
+		return ColumnVector(*this);
+	}
+
+	double operator*(const ColumnVector & b) {
+		double res = 0.0;
+
+		const int aRows = _size();
+		const int bRows = b.getSize();
+
+		assert(aRows == bRows);
+
+		for (auto i = 0; i < aRows; ++i) {
+			res += _matrix[i] * b.getValue(i);
+		}
+
+		return res;
+	}
+
+	ColumnVector operator*(const double b) {
+		const int aRows = _size;
+
+		ColumnVector colVector(aRows);
+		for (auto i = 0; i < aRows; ++i) {
+			colVector.insertValue(i, _matrix[i] * b);
+		}
+
+		return colVector;
+	}
+
+	ColumnVector operator+(const ColumnVector & b) {
+		const int aRows = _size;
+		const int bRows = b.getSize();
+
+		assert(aRows == bRows);
+
+		ColumnVector colVector(aRows);
+		for (auto i = 0; i < aRows; ++i) {
+			colVector.insertValue(i, _matrix[i] + b.getValue(i));
+		}
+
+		return colVector;
+	}
+
+	ColumnVector operator+(const double) {
+		Vector<T> add(const Vector<T> & a, const T b) {
+			const int aRows = a.size();
+
+			ColumnVector colVector(a);
+			for (auto i = 0; i < aRows; ++i) {
+				colVector[i] += b;
+			}
+
+			return colVector;
 		}
 	}
 
-	return resVec;
-}
+	ColumnVector operator-(const ColumnVector &) {
+		template <typename T>
+		Vector<T> subtract(const Vector<T> & a, const Vector<T> & b) {
+			const int aRows = a.size();
+			const int bRows = b.size();
 
-template <typename T>
-Vector<T> transpose(const Vector<T> & data) {
-	return data;
-}
+			assert(aRows == bRows);
 
-template <typename T>
-double multiply(const Vector<T> & a, const Vector<T> & b) {
-	double res = 0.0;
+			Vector<T> resVec(a);
+			for (auto i = 0; i < aRows; ++i) {
+				resVec[i] -= b[i];
+			}
 
-	const int aRows = a.size();
-	const int bRows = b.size();
-
-	assert(aRows == bRows);
-
-	for (auto i = 0; i < aRows; ++i) {
-		res += a[i] * b[i];
+			return resVec;
+		}
 	}
 
-	return res;
-}
+	ColumnVector operator-(const double) {
+		template <typename T>
+		Vector<T> subtract(const Vector<T> & a, const T b) {
+			const int aRows = a.size();
 
-template <typename T>
-Vector2D<T> multiply(const Vector2D<T> & a, const Vector2D<T> & b) {
-	const int aRows = a.size();
-	const int aCols = a[0].size();
-	const int bCols = b[0].size();
-
-	Vector2D<T> resVec(aRows, Vector<T>(bCols, 0));
-	for (auto j = 0; j < bCols; ++j) {
-		for (auto k = 0; k < aCols; ++k) {
+			Vector<T> resVec(a);
 			for (auto i = 0; i < aRows; ++i) {
-				resVec[i][j] += a[i][k] * b[k][j];
+				resVec[i] -= b;
+			}
+
+			return resVec;
+		}
+	}
+
+private:
+	Vector<double> _matrix;
+	int _size;
+};
+
+class SparseMatrix {
+	SparseMatrix(int rows, int cols) : _rows(rows), _cols(cols), _matrix(rows, Vector<double>(cols, 0)) {}
+
+	inline void insertValue(int row, int col, double value) {
+		_matrix[row][col] = value;
+	}
+
+	SparseMatrix T() {
+		SparseMatrix matrix(_rows, _cols);
+		for (auto i = 0; i < _rows; i++) {
+			for (auto j = 0; j < _cols; j++) {
+				matrix.insertValue(i, j, data[j][i]);
 			}
 		}
+		return matrix;
 	}
 
-	return resVec;
-}
+	SparseMatrix operator*(const SparseMatrix &) {
 
-template <typename T>
-Vector2D<T> multiply(const Vector2D<T> & a, const double b) {
-	const int aRows = a.size();
-	const int aCols = a[0].size();
+		template <typename T>
+		Vector2D<T> multiply(const Vector2D<T> & a, const Vector2D<T> & b) {
+			const int aRows = a.size();
+			const int aCols = a[0].size();
+			const int bCols = b[0].size();
 
-	Vector2D<T> resVec(a);
-	for (auto i = 0; i < aRows; ++i) {
-		for (auto j = 0; j < aCols; ++j) {
-			resVec[i][j] *= b;
+			Vector2D<T> resVec(aRows, Vector<T>(bCols, 0));
+			for (auto j = 0; j < bCols; ++j) {
+				for (auto k = 0; k < aCols; ++k) {
+					for (auto i = 0; i < aRows; ++i) {
+						resVec[i][j] += a[i][k] * b[k][j];
+					}
+				}
+			}
+
+			return resVec;
 		}
 	}
 
-	return resVec;
-}
+	SparseMatrix operator*(const double) {
+		template <typename T>
+		Vector2D<T> multiply(const Vector2D<T> & a, const double b) {
+			const int aRows = a.size();
+			const int aCols = a[0].size();
 
-template <typename T>
-Vector<T> multiply(const Vector<T> & a, const double b) {
-	const int aRows = a.size();
+			Vector2D<T> resVec(a);
+			for (auto i = 0; i < aRows; ++i) {
+				for (auto j = 0; j < aCols; ++j) {
+					resVec[i][j] *= b;
+				}
+			}
 
-	Vector<T> resVec(aRows);
-	for (auto i = 0; i < aRows; ++i) {
-		resVec[i] = a[i] * b;
-	}
-
-	return resVec;
-}
-
-template <typename T>
-Vector<T> multiply(const Vector2D<T> & a, const Vector<T> & b) {
-	const int aRows = a.size();
-	const int bRows = b.size();
-
-	assert(aRows == bRows);
-
-	Vector<T> resVec(bRows);
-	for (auto i = 0; i < aRows; ++i) {
-		for (auto j = 0; j < aRows; ++j) {
-			resVec[i] += a[i][j] * b[j];
+			return resVec;
 		}
 	}
 
-	return resVec;
-}
+	ColumnVector operator*(const ColumnVector &) {
+		template <typename T>
+		Vector<T> multiply(const Vector2D<T> & a, const Vector<T> & b) {
+			const int aRows = a.size();
+			const int bRows = b.size();
 
-template <typename T>
-Vector<T> add(const Vector<T> & a, const Vector<T> & b) {
-	const int aRows = a.size();
-	const int bRows = b.size();
+			assert(aRows == bRows);
 
-	assert(aRows == bRows);
+			Vector<T> resVec(bRows);
+			for (auto i = 0; i < aRows; ++i) {
+				for (auto j = 0; j < aRows; ++j) {
+					resVec[i] += a[i][j] * b[j];
+				}
+			}
 
-	Vector<T> resVec(a);
-	for (auto i = 0; i < aRows; ++i) {
-		resVec[i] += b[i];
-	}
-
-	return resVec;
-}
-
-template <typename T>
-Vector<T> add(const Vector<T> & a, const T b) {
-	const int aRows = a.size();
-
-	Vector<T> resVec(a);
-	for (auto i = 0; i < aRows; ++i) {
-		resVec[i] += b;
-	}
-
-	return resVec;
-}
-
-template <typename T>
-Vector2D<T> add(const Vector2D<T> & a, const T b) {
-	const int aRows = a.size();
-	const int aCols = a[0].size();
-
-	Vector2D<T> resVec(a);
-	for (auto i = 0; i < aRows; ++i) {
-		for (auto j = 0; j < aCols; ++j) {
-			resVec[i][j] += b;
+			return resVec;
 		}
 	}
 
-	return resVec;
-}
+	SparseMatrix operator+(const double) {
+		template <typename T>
+		Vector2D<T> add(const Vector2D<T> & a, const T b) {
+			const int aRows = a.size();
+			const int aCols = a[0].size();
 
-template <typename T>
-Vector<T> subtract(const Vector<T> & a, const Vector<T> & b) {
-	const int aRows = a.size();
-	const int bRows = b.size();
+			Vector2D<T> resVec(a);
+			for (auto i = 0; i < aRows; ++i) {
+				for (auto j = 0; j < aCols; ++j) {
+					resVec[i][j] += b;
+				}
+			}
 
-	assert(aRows == bRows);
-
-	Vector<T> resVec(a);
-	for (auto i = 0; i < aRows; ++i) {
-		resVec[i] -= b[i];
-	}
-
-	return resVec;
-}
-
-template <typename T>
-Vector<T> subtract(const Vector<T> & a, const T b) {
-	const int aRows = a.size();
-
-	Vector<T> resVec(a);
-	for (auto i = 0; i < aRows; ++i) {
-		resVec[i] -= b;
-	}
-
-	return resVec;
-}
-
-template <typename T>
-Vector2D<T> subtract(const Vector2D<T> & a, const T b) {
-	const int aRows = a.size();
-	const int aCols = a[0].size();
-
-	Vector2D<T> resVec(a);
-	for (auto i = 0; i < aRows; ++i) {
-		for (auto j = 0; j < aCols; ++j) {
-			resVec[i][j] -= b;
+			return resVec;
 		}
 	}
 
-	return resVec;
-}
+	SparseMatrix operator-(const double) {
+
+		template <typename T>
+		Vector2D<T> subtract(const Vector2D<T> & a, const T b) {
+			const int aRows = a.size();
+			const int aCols = a[0].size();
+
+			Vector2D<T> resVec(a);
+			for (auto i = 0; i < aRows; ++i) {
+				for (auto j = 0; j < aCols; ++j) {
+					resVec[i][j] -= b;
+				}
+			}
+
+			return resVec;
+		}
+
+	}
+
+private:
+	Vector2D<double> _matrix;
+	int _rows;
+	int _cols;
+};
 
 template <typename T>
 void print(const Vector<T> & vec) {
@@ -268,11 +309,11 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	Vector2D<double> A(rows, Vector<double>(cols, 0));
+	SparseMatrix A(rows, cols);
 
 	int row, col; double value;
 	while (infile >> row >> col >> value) {
-		A[row - 1][col - 1] = value;
+		A.insertValue(row - 1, col - 1, value);
 	}
 
 	Vector<double> b(rows, 5); // qual valor ?
