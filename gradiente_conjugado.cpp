@@ -2,9 +2,12 @@
 #include <vector>
 #include <cmath>
 #include <cassert>
+#include <fstream>
 
 /*
 g++ -O3 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado
+gprof
+g++ -O2 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado -pg
 */
 
 template <typename T>
@@ -242,17 +245,37 @@ Vector<double> gradiente_conjugado(const Vector2D<double> & A, const Vector<doub
 	return x;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+	if (argc != 2) {
+		std::cerr << "Arquivo .mtx deve ser informado.\n";
+		return -1;
+	}
 
-	Vector2D<double> A = {
-		{5.0, 2.0, 1.0, 0.0, 0.0},
-		{2.0, 5.0, 2.0, 1.0, 0.0},
-		{1.0, 2.0, 5.0, 2.0, 1.0},
-		{0.0, 1.0, 2.0, 5.0, 2.0},
-		{0.0, 0.0, 1.0, 2.0, 5.0}
-	};
+	std::ifstream infile(argv[1]);
+	if (!infile) {
+		std::cerr << "Não foi possível abrir o arquivo informado.\n";
+		return -1;
+	}
 
-	Vector<double> b = {5, 5, 5, 5, 5};
+	std::string nop;
+	std::getline(infile, nop); // pula 1 linha
+
+	int rows, cols, lines;
+	infile >> rows >> cols >> lines;
+
+	if (rows != cols) {
+		std::cerr << "O nro de linhas deve ser igual ao de colunas.\n";
+		return -1;
+	}
+
+	Vector2D<double> A(rows, Vector<double>(cols, 0));
+
+	int row, col; double value;
+	while (infile >> row >> col >> value) {
+		A[row - 1][col - 1] = value;
+	}
+
+	Vector<double> b(rows, 5); // qual valor ?
 
 	std::cout << "gradiente_conjugado\n";
 	print(gradiente_conjugado(A, b));
