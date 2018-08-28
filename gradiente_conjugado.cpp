@@ -17,102 +17,91 @@ template <typename T>
 using Vector2D = Vector<Vector<T>>;
 
 class ColumnVector {
-	ColumnVector(std::initializer_list list) : _matrix(list), _size(_matrix.size()) {}
+public:
+	ColumnVector(std::initializer_list<double> list) : _matrix(list), _size(_matrix.size()) {}
 	ColumnVector(int size) : _matrix(size), _size(size) {}
+	ColumnVector(int size, int value) : _matrix(size, value), _size(size) {}
 
-	int getSize() {
+	inline int getSize() const {
 		return _size;
 	}
 
-	double getValue(int idx) {
+	inline double get(int idx) const {
 		return _matrix[idx];
 	}
 
-	inline ColumnVector T() {
+	inline void set(int idx, double value) {
+		_matrix[idx] = value;
+	}
+
+	ColumnVector T() const {
 		return ColumnVector(*this);
 	}
 
-	double operator*(const ColumnVector & b) {
+	double operator*(const ColumnVector & b) const {
 		double res = 0.0;
 
-		const int aRows = _size();
-		const int bRows = b.getSize();
+		assert(_size == b.getSize());
 
-		assert(aRows == bRows);
-
-		for (auto i = 0; i < aRows; ++i) {
-			res += _matrix[i] * b.getValue(i);
+		for (auto i = 0; i < _size; ++i) {
+			res += _matrix[i] * b.get(i);
 		}
 
 		return res;
 	}
 
-	ColumnVector operator*(const double b) {
-		const int aRows = _size;
-
-		ColumnVector colVector(aRows);
-		for (auto i = 0; i < aRows; ++i) {
-			colVector.insertValue(i, _matrix[i] * b);
+	ColumnVector operator*(const double b) const {
+		ColumnVector colVector(_size);
+		for (auto i = 0; i < _size; ++i) {
+			colVector.set(i, _matrix[i] * b);
 		}
 
 		return colVector;
 	}
 
-	ColumnVector operator+(const ColumnVector & b) {
-		const int aRows = _size;
-		const int bRows = b.getSize();
+	ColumnVector operator+(const ColumnVector & b) const {
+		assert(_size == b.getSize());
 
-		assert(aRows == bRows);
-
-		ColumnVector colVector(aRows);
-		for (auto i = 0; i < aRows; ++i) {
-			colVector.insertValue(i, _matrix[i] + b.getValue(i));
+		ColumnVector colVector(_size);
+		for (auto i = 0; i < _size; ++i) {
+			colVector.set(i, _matrix[i] + b.get(i));
 		}
 
 		return colVector;
 	}
 
-	ColumnVector operator+(const double) {
-		Vector<T> add(const Vector<T> & a, const T b) {
-			const int aRows = a.size();
-
-			ColumnVector colVector(a);
-			for (auto i = 0; i < aRows; ++i) {
-				colVector[i] += b;
-			}
-
-			return colVector;
+	ColumnVector operator+(const double b) const {
+		ColumnVector colVector(_size);
+		for (auto i = 0; i < _size; ++i) {
+			colVector.set(i, _matrix[i] + b);
 		}
+
+		return colVector;
 	}
 
-	ColumnVector operator-(const ColumnVector &) {
-		template <typename T>
-		Vector<T> subtract(const Vector<T> & a, const Vector<T> & b) {
-			const int aRows = a.size();
-			const int bRows = b.size();
+	ColumnVector operator-(const ColumnVector & b) const {
+		assert(_size == b.getSize());
 
-			assert(aRows == bRows);
-
-			Vector<T> resVec(a);
-			for (auto i = 0; i < aRows; ++i) {
-				resVec[i] -= b[i];
-			}
-
-			return resVec;
+		ColumnVector colVector(_size);
+		for (auto i = 0; i < _size; ++i) {
+			colVector.set(i, _matrix[i] - b.get(i));
 		}
+
+		return colVector;
 	}
 
-	ColumnVector operator-(const double) {
-		template <typename T>
-		Vector<T> subtract(const Vector<T> & a, const T b) {
-			const int aRows = a.size();
+	ColumnVector operator-(const double b) const {
+		ColumnVector colVector(_size);
+		for (auto i = 0; i < _size; ++i) {
+			colVector.set(i, _matrix[i] - b);
+		}
 
-			Vector<T> resVec(a);
-			for (auto i = 0; i < aRows; ++i) {
-				resVec[i] -= b;
-			}
+		return colVector;
+	}
 
-			return resVec;
+	void print() const {
+		for (const auto & x : _matrix) {
+			std::cout << x << "\n";
 		}
 	}
 
@@ -122,164 +111,139 @@ private:
 };
 
 class SparseMatrix {
+public:
 	SparseMatrix(int rows, int cols) : _rows(rows), _cols(cols), _matrix(rows, Vector<double>(cols, 0)) {}
 
-	inline void insertValue(int row, int col, double value) {
+	inline void set(int row, int col, double value) {
 		_matrix[row][col] = value;
 	}
 
-	SparseMatrix T() {
+	inline double get(int row, int col) const {
+		return _matrix[row][col];
+	}
+
+	inline int getCols() const {
+		return _cols;
+	}
+
+	inline int getRows() const {
+		return _rows;
+	}
+
+	SparseMatrix T() const {
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; i++) {
 			for (auto j = 0; j < _cols; j++) {
-				matrix.insertValue(i, j, data[j][i]);
+				matrix.set(i, j, _matrix[j][i]);
 			}
 		}
 		return matrix;
 	}
 
-	SparseMatrix operator*(const SparseMatrix &) {
+	SparseMatrix operator*(const SparseMatrix & b) const {
+		const int bCols = b.getCols();
 
-		template <typename T>
-		Vector2D<T> multiply(const Vector2D<T> & a, const Vector2D<T> & b) {
-			const int aRows = a.size();
-			const int aCols = a[0].size();
-			const int bCols = b[0].size();
-
-			Vector2D<T> resVec(aRows, Vector<T>(bCols, 0));
-			for (auto j = 0; j < bCols; ++j) {
-				for (auto k = 0; k < aCols; ++k) {
-					for (auto i = 0; i < aRows; ++i) {
-						resVec[i][j] += a[i][k] * b[k][j];
-					}
+		SparseMatrix matrix(_rows, bCols);
+		for (auto j = 0; j < bCols; ++j) {
+			for (auto k = 0; k < _cols; ++k) {
+				for (auto i = 0; i < _rows; ++i) {
+					matrix.set(i, j, matrix.get(i, j) + (_matrix[i][k] * b.get(k, j)));
 				}
 			}
-
-			return resVec;
 		}
+
+		return matrix;
 	}
 
-	SparseMatrix operator*(const double) {
-		template <typename T>
-		Vector2D<T> multiply(const Vector2D<T> & a, const double b) {
-			const int aRows = a.size();
-			const int aCols = a[0].size();
-
-			Vector2D<T> resVec(a);
-			for (auto i = 0; i < aRows; ++i) {
-				for (auto j = 0; j < aCols; ++j) {
-					resVec[i][j] *= b;
-				}
+	SparseMatrix operator*(const double b) const {
+		SparseMatrix matrix(_rows, _cols);
+		for (auto i = 0; i < _rows; ++i) {
+			for (auto j = 0; j < _cols; ++j) {
+				matrix.set(i, j, _matrix[i][j] * b);
 			}
-
-			return resVec;
 		}
+
+		return matrix;
 	}
 
-	ColumnVector operator*(const ColumnVector &) {
-		template <typename T>
-		Vector<T> multiply(const Vector2D<T> & a, const Vector<T> & b) {
-			const int aRows = a.size();
-			const int bRows = b.size();
+	ColumnVector operator*(const ColumnVector & b) const {
+		const int bRows = b.getSize();
 
-			assert(aRows == bRows);
+		assert(_rows == bRows);
 
-			Vector<T> resVec(bRows);
-			for (auto i = 0; i < aRows; ++i) {
-				for (auto j = 0; j < aRows; ++j) {
-					resVec[i] += a[i][j] * b[j];
-				}
+		ColumnVector colVector(bRows);
+		for (auto i = 0; i < _rows; ++i) {
+			for (auto j = 0; j < _rows; ++j) {
+				colVector.set(i, colVector.get(i) + (_matrix[i][j] * b.get(j)));
 			}
-
-			return resVec;
 		}
+
+		return colVector;
 	}
 
-	SparseMatrix operator+(const double) {
-		template <typename T>
-		Vector2D<T> add(const Vector2D<T> & a, const T b) {
-			const int aRows = a.size();
-			const int aCols = a[0].size();
-
-			Vector2D<T> resVec(a);
-			for (auto i = 0; i < aRows; ++i) {
-				for (auto j = 0; j < aCols; ++j) {
-					resVec[i][j] += b;
-				}
+	SparseMatrix operator+(const double b) const {
+		SparseMatrix matrix(_rows, _cols);
+		for (auto i = 0; i < _rows; ++i) {
+			for (auto j = 0; j < _cols; ++j) {
+				matrix.set(i, j, _matrix[i][j] + b);
 			}
-
-			return resVec;
 		}
+
+		return matrix;
 	}
 
-	SparseMatrix operator-(const double) {
-
-		template <typename T>
-		Vector2D<T> subtract(const Vector2D<T> & a, const T b) {
-			const int aRows = a.size();
-			const int aCols = a[0].size();
-
-			Vector2D<T> resVec(a);
-			for (auto i = 0; i < aRows; ++i) {
-				for (auto j = 0; j < aCols; ++j) {
-					resVec[i][j] -= b;
-				}
+	SparseMatrix operator-(const double b) const {
+		SparseMatrix matrix(_rows, _cols);
+		for (auto i = 0; i < _rows; ++i) {
+			for (auto j = 0; j < _cols; ++j) {
+				matrix.set(i, j, _matrix[i][j] - b);
 			}
-
-			return resVec;
 		}
 
+		return matrix;
+	}
+
+	void print() const {
+		for (const auto & v : _matrix) {
+			for (const auto & x : v) {
+				std::cout << x << " ";
+			}
+			std::cout << "\n";
+		}
 	}
 
 private:
-	Vector2D<double> _matrix;
 	int _rows;
 	int _cols;
+	Vector2D<double> _matrix;
 };
 
-template <typename T>
-void print(const Vector<T> & vec) {
-	for (const auto & x : vec) {
-		std::cout << x << "\n";
-	}
-}
-
-template <typename T>
-void print(const Vector2D<T> & vec) {
-	for (const auto & v : vec) {
-		for (const auto & x : vec) {
-			std::cout << x << " ";
-		}
-		std::cout << "\n";
-	}
-}
-
-Vector<double> gradiente_conjugado(const Vector2D<double> & A, const Vector<double> & b) {
+ColumnVector gradiente_conjugado(const SparseMatrix & A, const ColumnVector & b) {
 	int imax = 1000;
 	double erro = 0.00001;
-	int n = A.size();
-	Vector<double> x = Vector<double>(n);
+	int n = A.getRows();
+	ColumnVector x(n);
 	int i = 1;
-	Vector<double> r(b);
-	Vector<double> d(b);
-	double sigma_novo = multiply(transpose(r), r);
+	ColumnVector r(b);
+	ColumnVector d(b);
+	double sigma_novo = r * r;
 	double sigma0 = sigma_novo;
 
 	while (i < imax && sigma_novo > (std::pow(erro, 2) * sigma0)) {
-		Vector<double> q = multiply(A, d);
-		double alpha = sigma_novo / multiply(transpose(d), q);
-		x = add(x, multiply(d, alpha));
+		ColumnVector q = A * d;
+		double alpha = sigma_novo / (d * q);
+		x = x + (d * alpha);
 
 		if (i % 50 == 0) {
-			r = subtract(b, multiply(A, x));
+			r = b - (A * x);
 		} else {
-			r = subtract(r, multiply(q, alpha));
+			r = r - (q * alpha);
 		}
 
 		double sigma_velho = sigma_novo;
-		sigma_novo = multiply(transpose(r), r);
+		sigma_novo = r * r;
 		double beta = sigma_novo / sigma_velho;
-		d = add(r, multiply(d, beta));
+		d = r + (d * beta);
 		++i;
 	}
 
@@ -313,13 +277,14 @@ int main(int argc, char *argv[]) {
 
 	int row, col; double value;
 	while (infile >> row >> col >> value) {
-		A.insertValue(row - 1, col - 1, value);
+		A.set(row - 1, col - 1, value);
 	}
 
-	Vector<double> b(rows, 5); // qual valor ?
+	ColumnVector b(rows, 5); // qual valor ?
 
 	std::cout << "gradiente_conjugado\n";
-	print(gradiente_conjugado(A, b));
+	ColumnVector res = gradiente_conjugado(A, b);
+	res.print();
 
 	return 0;
 }
