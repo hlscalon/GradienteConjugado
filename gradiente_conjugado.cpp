@@ -9,7 +9,7 @@ g++ -O3 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado
 gprof
 g++ -O2 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado -pg
 g++ -O2 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado -lprofiler
-LD_PRELOAD=/usr/lib64/libprofiler.so CPUPROFILE=/tmp/gradiente_conjugado.prof ./gradiente_conjugado arquivos/bcsstk06.mtx
+LD_PRELOAD=/usr/lib64/libprofiler.so CPUPROFILE=/tmp/gradiente_conjugado.prof ./gradiente_conjugado arquivos/bcsstk13.mtx
 pprof --web gradiente_conjugado /tmp/gradiente_conjugado.prof
 */
 
@@ -33,6 +33,10 @@ public:
 		return _matrix[idx];
 	}
 
+	inline double & get(int idx) {
+		return _matrix[idx];
+	}
+
 	inline void set(int idx, double value) {
 		_matrix[idx] = value;
 	}
@@ -42,11 +46,11 @@ public:
 	}
 
 	inline double & operator()(const int idx) {
-		return _matrix[idx];
+		return get(idx);
 	}
 
 	inline double operator()(const int idx) const {
-		return _matrix[idx];
+		return get(idx);
 	}
 
 	double operator*(const ColumnVector & b) const {
@@ -55,7 +59,7 @@ public:
 		assert(_size == b.getSize());
 
 		for (auto i = 0; i < _size; ++i) {
-			res += _matrix[i] * b(i);
+			res += get(i) * b(i);
 		}
 
 		return res;
@@ -64,7 +68,7 @@ public:
 	ColumnVector operator*(const double b) const {
 		ColumnVector colVector(_size);
 		for (auto i = 0; i < _size; ++i) {
-			colVector(i) = _matrix[i] * b;
+			colVector(i) = get(i) * b;
 		}
 
 		return colVector;
@@ -75,7 +79,7 @@ public:
 
 		ColumnVector colVector(b);
 		for (auto i = 0; i < _size; ++i) {
-			colVector(i) += _matrix[i];
+			colVector(i) += get(i);
 		}
 
 		return colVector;
@@ -84,7 +88,7 @@ public:
 	ColumnVector operator+(const double b) const {
 		ColumnVector colVector(_size);
 		for (auto i = 0; i < _size; ++i) {
-			colVector(i) = _matrix[i] + b;
+			colVector(i) = get(i) + b;
 		}
 
 		return colVector;
@@ -104,7 +108,7 @@ public:
 	ColumnVector operator-(const double b) const {
 		ColumnVector colVector(_size);
 		for (auto i = 0; i < _size; ++i) {
-			colVector(i) = _matrix[i] - b;
+			colVector(i) = get(i) - b;
 		}
 
 		return colVector;
@@ -133,6 +137,10 @@ public:
 		return _matrix[row][col];
 	}
 
+	inline double & get(int row, int col) {
+		return _matrix[row][col];
+	}
+
 	inline int getCols() const {
 		return _cols;
 	}
@@ -142,18 +150,18 @@ public:
 	}
 
 	inline double & operator()(const int row, const int col) {
-		return _matrix[row][col];
+		return get(row, col);
 	}
 
 	inline double operator()(const int row, const int col) const {
-		return _matrix[row][col];
+		return get(row, col);
 	}
 
 	SparseMatrix T() const {
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; i++) {
 			for (auto j = 0; j < _cols; j++) {
-				matrix(i, j) = _matrix[j][i];
+				matrix(i, j) = get(j, i);
 			}
 		}
 
@@ -167,7 +175,7 @@ public:
 		for (auto j = 0; j < bCols; ++j) {
 			for (auto k = 0; k < _cols; ++k) {
 				for (auto i = 0; i < _rows; ++i) {
-					matrix(i, j) += _matrix[i][k] * b(k, j);
+					matrix(i, j) += get(i, k) * b(k, j);
 				}
 			}
 		}
@@ -179,7 +187,7 @@ public:
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; ++i) {
 			for (auto j = 0; j < _cols; ++j) {
-				matrix(i, j) = _matrix[i][j] * b;
+				matrix(i, j) = get(i, j) * b;
 			}
 		}
 
@@ -194,7 +202,7 @@ public:
 		ColumnVector colVector(bRows);
 		for (auto i = 0; i < _rows; ++i) {
 			for (auto j = 0; j < _rows; ++j) {
-				colVector(i) += _matrix[i][j] * b(j);
+				colVector(i) += get(i, j) * b(j);
 			}
 		}
 
@@ -205,7 +213,7 @@ public:
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; ++i) {
 			for (auto j = 0; j < _cols; ++j) {
-				matrix(i, j) = _matrix[i][j] + b;
+				matrix(i, j) = get(i, j) + b;
 			}
 		}
 
@@ -216,7 +224,7 @@ public:
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; ++i) {
 			for (auto j = 0; j < _cols; ++j) {
-				matrix(i, j) = _matrix[i][j] - b;
+				matrix(i, j) = get(i, j) - b;
 			}
 		}
 
