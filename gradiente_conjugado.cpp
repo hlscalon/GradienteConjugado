@@ -8,6 +8,9 @@
 g++ -O3 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado
 gprof
 g++ -O2 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado -pg
+g++ -O2 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado -lprofiler
+LD_PRELOAD=/usr/lib64/libprofiler.so CPUPROFILE=/tmp/gradiente_conjugado.prof ./gradiente_conjugado arquivos/bcsstk06.mtx
+pprof --web gradiente_conjugado /tmp/gradiente_conjugado.prof
 */
 
 template <typename T>
@@ -38,13 +41,21 @@ public:
 		return ColumnVector(*this);
 	}
 
+	inline double & operator()(const int idx) {
+		return _matrix[idx];
+	}
+
+	inline double operator()(const int idx) const {
+		return _matrix[idx];
+	}
+
 	double operator*(const ColumnVector & b) const {
 		double res = 0.0;
 
 		assert(_size == b.getSize());
 
 		for (auto i = 0; i < _size; ++i) {
-			res += _matrix[i] * b.get(i);
+			res += _matrix[i] * b(i);
 		}
 
 		return res;
@@ -53,7 +64,7 @@ public:
 	ColumnVector operator*(const double b) const {
 		ColumnVector colVector(_size);
 		for (auto i = 0; i < _size; ++i) {
-			colVector.set(i, _matrix[i] * b);
+			colVector(i) = _matrix[i] * b;
 		}
 
 		return colVector;
@@ -62,9 +73,9 @@ public:
 	ColumnVector operator+(const ColumnVector & b) const {
 		assert(_size == b.getSize());
 
-		ColumnVector colVector(_size);
+		ColumnVector colVector(b);
 		for (auto i = 0; i < _size; ++i) {
-			colVector.set(i, _matrix[i] + b.get(i));
+			colVector(i) += _matrix[i];
 		}
 
 		return colVector;
@@ -73,7 +84,7 @@ public:
 	ColumnVector operator+(const double b) const {
 		ColumnVector colVector(_size);
 		for (auto i = 0; i < _size; ++i) {
-			colVector.set(i, _matrix[i] + b);
+			colVector(i) = _matrix[i] + b;
 		}
 
 		return colVector;
@@ -82,9 +93,9 @@ public:
 	ColumnVector operator-(const ColumnVector & b) const {
 		assert(_size == b.getSize());
 
-		ColumnVector colVector(_size);
+		ColumnVector colVector(*this);
 		for (auto i = 0; i < _size; ++i) {
-			colVector.set(i, _matrix[i] - b.get(i));
+			colVector(i) -= b(i);
 		}
 
 		return colVector;
@@ -93,7 +104,7 @@ public:
 	ColumnVector operator-(const double b) const {
 		ColumnVector colVector(_size);
 		for (auto i = 0; i < _size; ++i) {
-			colVector.set(i, _matrix[i] - b);
+			colVector(i) = _matrix[i] - b;
 		}
 
 		return colVector;
@@ -130,24 +141,33 @@ public:
 		return _rows;
 	}
 
+	inline double & operator()(const int row, const int col) {
+		return _matrix[row][col];
+	}
+
+	inline double operator()(const int row, const int col) const {
+		return _matrix[row][col];
+	}
+
 	SparseMatrix T() const {
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; i++) {
 			for (auto j = 0; j < _cols; j++) {
-				matrix.set(i, j, _matrix[j][i]);
+				matrix(i, j) = _matrix[j][i];
 			}
 		}
+
 		return matrix;
 	}
 
 	SparseMatrix operator*(const SparseMatrix & b) const {
 		const int bCols = b.getCols();
 
-		SparseMatrix matrix(_rows, bCols);
+		SparseMatrix matrix(b);
 		for (auto j = 0; j < bCols; ++j) {
 			for (auto k = 0; k < _cols; ++k) {
 				for (auto i = 0; i < _rows; ++i) {
-					matrix.set(i, j, matrix.get(i, j) + (_matrix[i][k] * b.get(k, j)));
+					matrix(i, j) += _matrix[i][k] * b(k, j);
 				}
 			}
 		}
@@ -159,7 +179,7 @@ public:
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; ++i) {
 			for (auto j = 0; j < _cols; ++j) {
-				matrix.set(i, j, _matrix[i][j] * b);
+				matrix(i, j) = _matrix[i][j] * b;
 			}
 		}
 
@@ -174,7 +194,7 @@ public:
 		ColumnVector colVector(bRows);
 		for (auto i = 0; i < _rows; ++i) {
 			for (auto j = 0; j < _rows; ++j) {
-				colVector.set(i, colVector.get(i) + (_matrix[i][j] * b.get(j)));
+				colVector(i) += _matrix[i][j] * b(j);
 			}
 		}
 
@@ -185,7 +205,7 @@ public:
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; ++i) {
 			for (auto j = 0; j < _cols; ++j) {
-				matrix.set(i, j, _matrix[i][j] + b);
+				matrix(i, j) = _matrix[i][j] + b;
 			}
 		}
 
@@ -196,7 +216,7 @@ public:
 		SparseMatrix matrix(_rows, _cols);
 		for (auto i = 0; i < _rows; ++i) {
 			for (auto j = 0; j < _cols; ++j) {
-				matrix.set(i, j, _matrix[i][j] - b);
+				matrix(i, j) = _matrix[i][j] - b;
 			}
 		}
 
