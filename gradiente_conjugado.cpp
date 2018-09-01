@@ -85,15 +85,6 @@ public:
 		return colVector;
 	}
 
-	ColumnVector operator+(const double b) const {
-		ColumnVector colVector(_size);
-		for (auto i = 0; i < _size; ++i) {
-			colVector(i) = get(i) + b;
-		}
-
-		return colVector;
-	}
-
 	ColumnVector operator-(const ColumnVector & b) const {
 		assert(_size == b.getSize());
 
@@ -105,19 +96,17 @@ public:
 		return colVector;
 	}
 
-	ColumnVector operator-(const double b) const {
-		ColumnVector colVector(_size);
-		for (auto i = 0; i < _size; ++i) {
-			colVector(i) = get(i) - b;
-		}
-
-		return colVector;
-	}
-
 	void print() const {
 		for (const auto & x : _matrix) {
 			std::cout << x << "\n";
 		}
+	}
+
+	void printT() const {
+		for (const auto & x : _matrix) {
+			std::cout << x << " ";
+		}
+		std::cout << "\n";
 	}
 
 private:
@@ -127,123 +116,72 @@ private:
 
 class SparseMatrix {
 public:
-	SparseMatrix(int rows, int cols) : _rows(rows), _cols(cols), _matrix(rows, Vector<double>(cols, 0)) {}
+	SparseMatrix(int nRows, int nCols, int nValues) : _nRows(nRows), _nCols(nCols), _lastCol(-1), _nValues(nValues), _values(nValues), _rowsIdx(nValues) {}
 
 	inline void set(int row, int col, double value) {
-		_matrix[row][col] = value;
+		_values[_colPtr] = value;
+		_rowsIdx[_colPtr] = row;
+
+		if (col != _lastCol) {
+			_colsPtr.push_back(_colPtr);
+			_lastCol = col;
+		}
+
+		_colPtr++;
 	}
 
-	inline double get(int row, int col) const {
-		return _matrix[row][col];
-	}
-
-	inline double & get(int row, int col) {
-		return _matrix[row][col];
+	inline void updateColsPtr() {
+		_colsPtr.push_back(_colPtr++);
 	}
 
 	inline int getCols() const {
-		return _cols;
+		return _nCols;
 	}
 
 	inline int getRows() const {
-		return _rows;
-	}
-
-	inline double & operator()(const int row, const int col) {
-		return get(row, col);
-	}
-
-	inline double operator()(const int row, const int col) const {
-		return get(row, col);
-	}
-
-	SparseMatrix T() const {
-		SparseMatrix matrix(_rows, _cols);
-		for (auto i = 0; i < _rows; i++) {
-			for (auto j = 0; j < _cols; j++) {
-				matrix(i, j) = get(j, i);
-			}
-		}
-
-		return matrix;
-	}
-
-	SparseMatrix operator*(const SparseMatrix & b) const {
-		const int bCols = b.getCols();
-
-		SparseMatrix matrix(b);
-		for (auto j = 0; j < bCols; ++j) {
-			for (auto k = 0; k < _cols; ++k) {
-				for (auto i = 0; i < _rows; ++i) {
-					matrix(i, j) += get(i, k) * b(k, j);
-				}
-			}
-		}
-
-		return matrix;
-	}
-
-	SparseMatrix operator*(const double b) const {
-		SparseMatrix matrix(_rows, _cols);
-		for (auto i = 0; i < _rows; ++i) {
-			for (auto j = 0; j < _cols; ++j) {
-				matrix(i, j) = get(i, j) * b;
-			}
-		}
-
-		return matrix;
+		return _nRows;
 	}
 
 	ColumnVector operator*(const ColumnVector & b) const {
 		const int bRows = b.getSize();
 
-		assert(_rows == bRows);
+		assert(_nRows == bRows);
 
 		ColumnVector colVector(bRows);
-		for (auto i = 0; i < _rows; ++i) {
-			for (auto j = 0; j < _rows; ++j) {
-				colVector(i) += get(i, j) * b(j);
+		for (auto i = 0; i < bRows; ++i) {
+			for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
+				colVector(_rowsIdx[k]) += _values[k] * b(i);
 			}
 		}
 
 		return colVector;
 	}
 
-	SparseMatrix operator+(const double b) const {
-		SparseMatrix matrix(_rows, _cols);
-		for (auto i = 0; i < _rows; ++i) {
-			for (auto j = 0; j < _cols; ++j) {
-				matrix(i, j) = get(i, j) + b;
-			}
+	void printCSC() const {
+		std::cout << "_values: " << "\n";
+		for (const auto & v : _values) {
+			std::cout << v << " ";
 		}
-
-		return matrix;
-	}
-
-	SparseMatrix operator-(const double b) const {
-		SparseMatrix matrix(_rows, _cols);
-		for (auto i = 0; i < _rows; ++i) {
-			for (auto j = 0; j < _cols; ++j) {
-				matrix(i, j) = get(i, j) - b;
-			}
+		std::cout << "\n_rowsIdx: " << "\n";
+		for (const auto & v : _rowsIdx) {
+			std::cout << v << " ";
 		}
-
-		return matrix;
-	}
-
-	void print() const {
-		for (const auto & v : _matrix) {
-			for (const auto & x : v) {
-				std::cout << x << " ";
-			}
-			std::cout << "\n";
+		std::cout << "\n_colsPtr: " << "\n";
+		for (const auto & v : _colsPtr) {
+			std::cout << v << " ";
 		}
+		std::cout << "\n";
 	}
 
 private:
-	int _rows;
-	int _cols;
-	Vector2D<double> _matrix;
+	int _nRows;
+	int _nCols;
+	int _colPtr;
+	int _lastCol;
+	int _nValues;
+	Vector<double> _values;
+	Vector<int> _rowsIdx;
+	Vector<int> _colsPtr;
 };
 
 ColumnVector gradiente_conjugado(const SparseMatrix & A, const ColumnVector & b) {
@@ -301,12 +239,13 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	SparseMatrix A(rows, cols);
+	SparseMatrix A(rows, cols, lines);
 
 	int row, col; double value;
 	while (infile >> row >> col >> value) {
 		A.set(row - 1, col - 1, value);
 	}
+	A.updateColsPtr();
 
 	ColumnVector b(rows, 5); // qual valor ?
 
