@@ -4,6 +4,8 @@
 #include <cassert>
 #include <fstream>
 
+//#define MULT_TUDO 1
+
 /*
 g++ -O3 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado
 gprof
@@ -143,16 +145,38 @@ public:
 	}
 
 	ColumnVector operator*(const ColumnVector & b) const {
-		const int bRows = b.getSize();
+		const int bCols = b.getSize();
 
-		assert(_nRows == bRows);
+		assert(_nCols == bCols);
 
-		ColumnVector colVector(bRows);
-		for (auto i = 0; i < bRows; ++i) {
+		ColumnVector colVector(bCols);
+
+#ifdef MULT_TUDO
+		for (auto i = 0; i < bCols; ++i) {
 			for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
 				colVector(_rowsIdx[k]) += _values[k] * b(i);
 			}
 		}
+#else
+		int metade = std::ceil(bCols / 2); // pega a linha do meio
+		for (auto i = 0; i < bCols; ++i) {
+			/*
+			if (i > 0 && _colsPtr[i + 1] - _colsPtr[i] >= bCols) { // vai ate a metade
+				break;
+			}
+			*/
+
+			for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
+				if (_rowsIdx[k] <= metade) {
+					colVector(_rowsIdx[k]) += _values[k] * b(i);
+				}
+			}
+		}
+
+		for (auto i = metade + 1; i < _nRows; ++i) {
+			colVector(i) = colVector(_nRows - 1 - i);
+		}
+#endif
 
 		return colVector;
 	}
