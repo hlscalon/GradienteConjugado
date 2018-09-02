@@ -159,22 +159,20 @@ public:
 		}
 #else
 		int metade = std::ceil(bCols / 2); // pega a linha do meio
-		for (auto i = 0; i < bCols; ++i) {
-			/*
-			if (i > 0 && _colsPtr[i + 1] - _colsPtr[i] >= bCols) { // vai ate a metade
-				break;
-			}
-			*/
-
+		for (auto i = 0; i < metade; ++i) { // bCols
 			for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
-				if (_rowsIdx[k] <= metade) {
-					colVector(_rowsIdx[k]) += _values[k] * b(i);
-				}
+				colVector(_rowsIdx[k]) += _values[k] * b(i);
 			}
 		}
 
-		for (auto i = metade + 1; i < _nRows; ++i) {
-			colVector(i) = colVector(_nRows - 1 - i);
+		ColumnVector aux(colVector);
+
+		for (auto k = _colsPtr[metade]; k < _colsPtr[metade + 1]; ++k) {
+			colVector(_rowsIdx[k]) += _values[k] * b(metade);
+		}
+
+		for (auto i = 0; i < bCols; ++i) {
+			colVector(i) += aux(bCols - 1 - i);
 		}
 #endif
 
@@ -275,7 +273,7 @@ int main(int argc, char *argv[]) {
 
 	std::cout << "gradiente_conjugado\n";
 	ColumnVector res = gradiente_conjugado(A, b);
-	res.print();
+	//res.print();
 
 	return 0;
 }
