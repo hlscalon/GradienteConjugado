@@ -11,6 +11,7 @@ g++ -O3 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado
 gprof
 g++ -O2 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado -pg
 g++ -O2 -Wall -std=c++14 gradiente_conjugado.cpp -o gradiente_conjugado -lprofiler
+./gradiente_conjugado arquivos/bcsstk13.mtx
 LD_PRELOAD=/usr/lib64/libprofiler.so CPUPROFILE=/tmp/gradiente_conjugado.prof ./gradiente_conjugado arquivos/bcsstk13.mtx
 pprof --web gradiente_conjugado /tmp/gradiente_conjugado.prof
 */
@@ -23,28 +24,24 @@ using Vector2D = Vector<Vector<T>>;
 
 class ColumnVector {
 public:
-	ColumnVector(std::initializer_list<double> list) : _matrix(list), _size(_matrix.size()) {}
-	ColumnVector(int size) : _matrix(size), _size(size) {}
-	ColumnVector(int size, int value) : _matrix(size, value), _size(size) {}
+	ColumnVector(const std::initializer_list<double> list) : _matrix(list), _size(_matrix.size()) {}
+	ColumnVector(const int size) : _matrix(size), _size(size) {}
+	ColumnVector(const int size, const int value) : _matrix(size, value), _size(size) {}
 
 	inline int getSize() const {
 		return _size;
 	}
 
-	inline double get(int idx) const {
+	inline double get(const int idx) const {
 		return _matrix[idx];
 	}
 
-	inline double & get(int idx) {
+	inline double & get(const int idx) {
 		return _matrix[idx];
 	}
 
-	inline void set(int idx, double value) {
+	inline void set(const int idx, const double value) {
 		_matrix[idx] = value;
-	}
-
-	ColumnVector T() const {
-		return ColumnVector(*this);
 	}
 
 	inline double & operator()(const int idx) {
@@ -68,9 +65,9 @@ public:
 	}
 
 	ColumnVector operator*(const double b) const {
-		ColumnVector colVector(_size);
+		ColumnVector colVector(*this);
 		for (auto i = 0; i < _size; ++i) {
-			colVector(i) = get(i) * b;
+			colVector(i) *= b;
 		}
 
 		return colVector;
@@ -118,9 +115,9 @@ private:
 
 class SparseMatrix {
 public:
-	SparseMatrix(int nRows, int nCols, int nValues) : _nRows(nRows), _nCols(nCols), _lastCol(-1), _nValues(nValues), _values(nValues), _rowsIdx(nValues) {}
+	SparseMatrix(const int nRows, const int nCols, const int nValues) : _nRows(nRows), _nCols(nCols), _lastCol(-1), _nValues(nValues), _values(nValues), _rowsIdx(nValues) {}
 
-	inline void set(int row, int col, double value) {
+	inline void set(const int row, const int col, const double value) {
 		_values[_colPtr] = value;
 		_rowsIdx[_colPtr] = row;
 
@@ -158,6 +155,23 @@ public:
 			}
 		}
 #else
+		// mais lento que o de baixo
+		/*
+		int metade = std::ceil(bCols / 2); // pega a linha do meio
+		for (auto i = 0; i < metade; ++i) {
+			for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
+				const double tmp = _values[k] * b(i);
+
+				colVector(_rowsIdx[k]) += tmp;
+				colVector(bCols - 1 - _rowsIdx[k]) += tmp;
+			}
+		}
+
+		for (auto k = _colsPtr[metade]; k < _colsPtr[metade + 1]; ++k) {
+			colVector(_rowsIdx[k]) += _values[k] * b(metade);
+		}
+		*/
+
 		int metade = std::ceil(bCols / 2); // pega a linha do meio
 		for (auto i = 0; i < metade; ++i) { // bCols
 			for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
@@ -165,14 +179,13 @@ public:
 			}
 		}
 
-		ColumnVector aux(colVector);
+		const ColumnVector aux(colVector);
+		for (auto i = 0; i < bCols; ++i) {
+			colVector(i) += aux(bCols - 1 - i);
+		}
 
 		for (auto k = _colsPtr[metade]; k < _colsPtr[metade + 1]; ++k) {
 			colVector(_rowsIdx[k]) += _values[k] * b(metade);
-		}
-
-		for (auto i = 0; i < bCols; ++i) {
-			colVector(i) += aux(bCols - 1 - i);
 		}
 #endif
 
@@ -271,7 +284,6 @@ int main(int argc, char *argv[]) {
 
 	ColumnVector b(rows, 5); // qual valor ?
 
-	std::cout << "gradiente_conjugado\n";
 	ColumnVector res = gradiente_conjugado(A, b);
 	//res.print();
 
