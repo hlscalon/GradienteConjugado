@@ -1,8 +1,10 @@
 CC = g++
-CFLAGS = -O3 -Wall -std=c++14
-LIBS = -lprofiler
+CFLAGS = -O3 -Wall -std=c++11
+LIBS =
 SOURCES = src/*.cpp
 OBJECT = gradiente_conjugado
+DEBUG = #-g
+PROFILER = -lprofiler
 
 main:
-	$(CC) $(CFLAGS) $(LIBS) $(SOURCES) -o $(OBJECT) -g
+	$(CC) $(CFLAGS) $(LIBS) $(SOURCES) -o $(OBJECT) $(DEBUG) $(PROFILER)

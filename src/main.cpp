@@ -56,29 +56,32 @@ void calcularBoeing(std::ifstream & infile) {
 
 	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-	std::string linha; int i = 0; int idx = 0;
+	std::string linha; int i = 0; int idx = 0; std::istringstream iss;
 
+	int colPtr;
 	while (i++ < nLinhasColsPtr && std::getline(infile, linha)) {
-		std::istringstream iss(linha);
-		int colPtr;
+		iss.str(linha);
+		iss.clear();
 		while (iss >> colPtr) {
 			A.setColPtr(idx++, colPtr - 1);
 		}
 	}
 
 	i = 0; idx = 0;
+	int rowIdx;
 	while (i++ < nLinhasRowsIdx && std::getline(infile, linha)) {
-		std::istringstream iss(linha);
-		int rowIdx;
+		iss.str(linha);
+		iss.clear();
 		while (iss >> rowIdx) {
 			A.setRowIdx(idx++, rowIdx - 1);
 		}
 	}
 
 	i = 0; idx = 0;
+	double value;
 	while (i++ < nLinhasValues && std::getline(infile, linha)) {
-		std::istringstream iss(linha);
-		double value;
+		iss.str(linha);
+		iss.clear();
 		while (iss >> value) {
 			A.setValue(idx++, value - 1);
 		}
