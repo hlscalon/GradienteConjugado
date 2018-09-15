@@ -34,14 +34,18 @@ void calcularMTX(std::ifstream & infile) {
 }
 
 void calcularBoeing(std::ifstream & infile) {
-	std::string nop;
-	infile.ignore(std::numeric_limits<std::streamsize>::max(), infile.widen('\n')); // pula 1 linha
+	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // pula cabeçalho
 
+	std::string nop;
 	int nLinhasColsPtr, nLinhasRowsIdx, nLinhasValues;
-	infile >> nop >> nLinhasColsPtr >> nLinhasRowsIdx >> nLinhasValues >> nop;
+	infile >> nop >> nLinhasColsPtr >> nLinhasRowsIdx >> nLinhasValues;
+
+	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // ignora ate o final da linha
 
 	int nLinhasMatriz, nColunasMatriz, nElementos;
-	infile >> nop >> nLinhasMatriz >> nColunasMatriz >> nElementos >> nop >> nop;
+	infile >> nop >> nLinhasMatriz >> nColunasMatriz >> nElementos;
+
+	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // ignora ate o final da linha
 
 	if (nLinhasMatriz != nColunasMatriz) {
 		std::cerr << "O nro de linhas deve ser igual ao de colunas.\n";
@@ -50,7 +54,7 @@ void calcularBoeing(std::ifstream & infile) {
 
 	SparseMatrix A(nLinhasMatriz, nColunasMatriz, nElementos, nLinhasMatriz + 1);
 
-	infile.ignore(std::numeric_limits<std::streamsize>::max(), infile.widen('\n'));
+	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
 	std::string linha; int i = 0; int idx = 0;
 
@@ -81,7 +85,6 @@ void calcularBoeing(std::ifstream & infile) {
 	}
 
 	ColumnVector b(nLinhasMatriz, 5); // qual valor ?
-
 	ColumnVector res = gradienteConjugado(A, b);
 	res.print();
 }
