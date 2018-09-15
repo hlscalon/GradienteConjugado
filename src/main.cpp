@@ -4,6 +4,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <limits>
 
 void calcularMTX(std::ifstream & infile) {
 	std::string nop;
@@ -17,7 +19,7 @@ void calcularMTX(std::ifstream & infile) {
 		return;
 	}
 
-	SparseMatrix A(rows, cols, lines);
+	SparseMatrix A(rows, cols, lines, 0);
 
 	int row, col; double value;
 	while (infile >> row >> col >> value) {
@@ -28,11 +30,60 @@ void calcularMTX(std::ifstream & infile) {
 	ColumnVector b(rows, 5); // qual valor ?
 
 	ColumnVector res = gradienteConjugado(A, b);
-	//res.print();
+	res.print();
 }
 
-void calcularBoeing(const std::ifstream & infile) {
+void calcularBoeing(std::ifstream & infile) {
+	std::string nop;
+	infile.ignore(std::numeric_limits<std::streamsize>::max(), infile.widen('\n')); // pula 1 linha
 
+	int nLinhasColsPtr, nLinhasRowsIdx, nLinhasValues;
+	infile >> nop >> nLinhasColsPtr >> nLinhasRowsIdx >> nLinhasValues >> nop;
+
+	int nLinhasMatriz, nColunasMatriz, nElementos;
+	infile >> nop >> nLinhasMatriz >> nColunasMatriz >> nElementos >> nop >> nop;
+
+	if (nLinhasMatriz != nColunasMatriz) {
+		std::cerr << "O nro de linhas deve ser igual ao de colunas.\n";
+		return;
+	}
+
+	SparseMatrix A(nLinhasMatriz, nColunasMatriz, nElementos, nLinhasMatriz + 1);
+
+	infile.ignore(std::numeric_limits<std::streamsize>::max(), infile.widen('\n'));
+
+	std::string linha; int i = 0; int idx = 0;
+
+	while (i++ < nLinhasColsPtr && std::getline(infile, linha)) {
+		std::istringstream iss(linha);
+		int colPtr;
+		while (iss >> colPtr) {
+			A.setColPtr(idx++, colPtr - 1);
+		}
+	}
+
+	i = 0; idx = 0;
+	while (i++ < nLinhasRowsIdx && std::getline(infile, linha)) {
+		std::istringstream iss(linha);
+		int rowIdx;
+		while (iss >> rowIdx) {
+			A.setRowIdx(idx++, rowIdx - 1);
+		}
+	}
+
+	i = 0; idx = 0;
+	while (i++ < nLinhasValues && std::getline(infile, linha)) {
+		std::istringstream iss(linha);
+		double value;
+		while (iss >> value) {
+			A.setValue(idx++, value - 1);
+		}
+	}
+
+	ColumnVector b(nLinhasMatriz, 5); // qual valor ?
+
+	ColumnVector res = gradienteConjugado(A, b);
+	res.print();
 }
 
 int main(int argc, char *argv[]) {
@@ -41,7 +92,7 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	std::ifstream infile(argv[1]);
+	std::ifstream infile(argv[1], std::ios::binary);
 	if (!infile) {
 		std::cerr << "Não foi possível abrir o arquivo informado.\n";
 		return -1;
