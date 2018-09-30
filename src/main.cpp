@@ -7,7 +7,7 @@
 #include <sstream>
 #include <limits>
 
-void calcularMTX(std::ifstream & infile) {
+void calcularMTX(std::ifstream & infile, int valorVetor) {
 	std::string nop;
 	std::getline(infile, nop); // pula 1 linha
 
@@ -27,13 +27,13 @@ void calcularMTX(std::ifstream & infile) {
 	}
 	A.updateColsPtr();
 
-	ColumnVector b(rows, 5); // qual valor ?
+	ColumnVector b(rows, valorVetor);
 
 	ColumnVector res = gradienteConjugado(A, b);
 	res.print();
 }
 
-void calcularBoeing(std::ifstream & infile) {
+void calcularBoeing(std::ifstream & infile, int valorVetor) {
 	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // pula cabeçalho
 
 	std::string nop;
@@ -87,14 +87,18 @@ void calcularBoeing(std::ifstream & infile) {
 		}
 	}
 
-	ColumnVector b(nLinhasMatriz, 5); // qual valor ?
+	ColumnVector b(nLinhasMatriz, valorVetor); // qual valor ?
 	ColumnVector res = gradienteConjugado(A, b);
 	res.print();
 }
 
 int main(int argc, char *argv[]) {
-	if (argc != 3) {
-		std::cerr << "<$1> = caminho do arquivo.\n<$2> = formato do arquivo (1 = Harwell-Boeing, 2 = MTX)\n";
+	// todo: pre condicionadores do gradiente conjugado
+
+	if (argc != 4) {
+		std::cerr << "<$1> = caminho do arquivo\n"
+				  << "<$2> = formato do arquivo (1 = Harwell-Boeing, 2 = MTX)\n"
+				  << "<$3> = valor do vetor b.\n";
 		return -1;
 	}
 
@@ -104,11 +108,13 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
+	int valorVetor = std::atoi(argv[3]);
+
 	int formato = std::atoi(argv[2]);
 	if (formato == 2) {
-		calcularMTX(infile);
+		calcularMTX(infile, valorVetor);
 	} else if (formato == 1) {
-		calcularBoeing(infile);
+		calcularBoeing(infile, valorVetor);
 	} else {
 		std::cerr << "Formato de arquivo inválido.\n";
 		return -1;
