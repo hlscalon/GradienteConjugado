@@ -19,11 +19,15 @@ void calcularMTX(std::ifstream & infile, int valorVetor) {
 		return;
 	}
 
+	// funciona somente para matrizes impares
+	cols = cols / 2;
 	SparseMatrix A(rows, cols, lines, 0);
 
 	int row, col; double value;
 	while (infile >> row >> col >> value) {
-		A.set(row - 1, col - 1, value);
+		if (col - 1 <= cols) {
+			A.set(row - 1, col - 1, value);
+		}
 	}
 	A.updateColsPtr();
 

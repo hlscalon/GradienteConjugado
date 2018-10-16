@@ -19,12 +19,11 @@ void SparseMatrix::set(const int row, const int col, const double value) {
 ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	const int bCols = b.getSize();
 
-	assert(_nCols == bCols);
+	assert(bCols == _nCols * 2 + 1);
 
 	ColumnVector colVector(bCols);
 
-	int metade = std::ceil(bCols / 2); // pega a linha do meio
-	for (auto i = 0; i < metade; ++i) { // bCols
+	for (auto i = 0; i < _nCols; ++i) { // bCols / 2
 		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
 			colVector(_rowsIdx[k]) += _values[k] * b(i);
 		}
@@ -35,8 +34,8 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 		colVector(i) += aux(bCols - 1 - i);
 	}
 
-	for (auto k = _colsPtr[metade]; k < _colsPtr[metade + 1]; ++k) {
-		colVector(_rowsIdx[k]) += _values[k] * b(metade);
+	for (auto k = _colsPtr[_nCols]; k < _colsPtr[_nCols + 1]; ++k) {
+		colVector(_rowsIdx[k]) += _values[k] * b(_nCols);
 	}
 
 	return colVector;

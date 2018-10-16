@@ -8,8 +8,8 @@
 class SparseMatrix {
 public:
 	SparseMatrix(const int nRows, const int nCols, const int nValues, const int nColsPtr) :
-				_nRows(nRows), _nCols(nCols), _colPtr(0), _lastCol(-1), _nValues(nValues),
-				_values(nValues), _rowsIdx(nValues), _colsPtr(nColsPtr) {}
+		_nRows(nRows), _nCols(nCols), _colPtr(0), _lastCol(-1), _nValues(nValues),
+		_values(nValues), _rowsIdx(nValues), _colsPtr(nColsPtr) {}
 
 	inline int getCols() const {
 		return _nCols;
@@ -20,7 +20,11 @@ public:
 	}
 
 	inline void updateColsPtr() {
+		// remover valores desnecessarios
+		_values.erase(_values.begin() + _colPtr, _values.end());
+		_rowsIdx.erase(_rowsIdx.begin() + _colPtr, _rowsIdx.end());
 		_colsPtr.push_back(_colPtr++);
+		_nValues = _colPtr;
 	}
 
 	inline void setValue(const int idx, const double value) {
