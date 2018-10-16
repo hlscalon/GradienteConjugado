@@ -4,6 +4,6 @@
 #include "SparseMatrix.hpp"
 #include "ColumnVector.hpp"
 
-ColumnVector gradienteConjugado(const SparseMatrix & A, const ColumnVector & b);
+ColumnVector gradienteConjugado(int rank, SparseMatrix & A, const ColumnVector & b);
 
 #endif // GRADIENTE_CONJUGADO_HPP

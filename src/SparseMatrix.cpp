@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cassert>
 #include <cmath>
+#include <mpi.h>
 
 void SparseMatrix::set(const int row, const int col, const double value) {
 	_values[_colPtr] = value;
@@ -23,10 +24,35 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 
 	ColumnVector colVector(bCols);
 
+	int sizeColsPtr = 0;
+	if (_rank == 0) {
+		sizeColsPtr = _colsPtr.size();
+	}
+
+	MPI_Bcast(&sizeColsPtr, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	std::vector<double> values;
+	std::vector<int> rowsIdx;
+	std::vector<int> colsPtr;
+
+	if (_rank == 0) {
+		values = _values;
+		rowsIdx = _rowsIdx;
+		colsPtr = _colsPtr;
+	} else {
+		values.resize(_nValues);
+		rowsIdx.resize(_nValues);
+		colsPtr.resize(sizeColsPtr);
+	}
+
+	MPI_Bcast(values.data(), _nValues, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Bcast(rowsIdx.data(), _nValues, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(colsPtr.data(), sizeColsPtr, MPI_INT, 0, MPI_COMM_WORLD);
+
 	int metade = std::ceil(bCols / 2); // pega a linha do meio
-	for (auto i = 0; i < metade; ++i) { // bCols
-		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
-			colVector(_rowsIdx[k]) += _values[k] * b(i);
+	for (auto i = 0; i < metade; ++i) {
+		for (auto k = colsPtr[i]; k < colsPtr[i + 1]; ++k) {
+			colVector(rowsIdx[k]) += values[k] * b(i);
 		}
 	}
 
@@ -35,8 +61,8 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 		colVector(i) += aux(bCols - 1 - i);
 	}
 
-	for (auto k = _colsPtr[metade]; k < _colsPtr[metade + 1]; ++k) {
-		colVector(_rowsIdx[k]) += _values[k] * b(metade);
+	for (auto k = colsPtr[metade]; k < colsPtr[metade + 1]; ++k) {
+		colVector(rowsIdx[k]) += values[k] * b(metade);
 	}
 
 	return colVector;

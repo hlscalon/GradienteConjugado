@@ -7,9 +7,9 @@
 
 class SparseMatrix {
 public:
-	SparseMatrix(const int nRows, const int nCols, const int nValues, const int nColsPtr) :
-				_nRows(nRows), _nCols(nCols), _colPtr(0), _lastCol(-1), _nValues(nValues),
-				_values(nValues), _rowsIdx(nValues), _colsPtr(nColsPtr) {}
+	SparseMatrix(const int rank, const int nProcs, const int nRows, const int nCols, const int nValues, const int nColsPtr) :
+		_rank(rank), _nProcs(nProcs), _nRows(nRows), _nCols(nCols), _colPtr(0), _lastCol(-1),
+		_nValues(nValues), _values(nValues), _rowsIdx(nValues), _colsPtr(nColsPtr) {}
 
 	inline int getCols() const {
 		return _nCols;
@@ -42,6 +42,8 @@ public:
 	void printCSC() const;
 
 private:
+    int _rank;
+    int _nProcs;
 	int _nRows;
 	int _nCols;
 	int _colPtr;

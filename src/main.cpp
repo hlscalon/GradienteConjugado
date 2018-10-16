@@ -6,34 +6,50 @@
 #include <fstream>
 #include <sstream>
 #include <limits>
+#include <mpi.h>
 
-void calcularMTX(std::ifstream & infile, int valorVetor) {
-	std::string nop;
-	std::getline(infile, nop); // pula 1 linha
-
+void calcularMTX(int rank, int nProcs, std::ifstream & infile, int valorVetor) {
 	int rows, cols, lines;
-	infile >> rows >> cols >> lines;
+	if (rank == 0) {
+		std::string nop;
+		std::getline(infile, nop); // pula 1 linha
+		infile >> rows >> cols >> lines;
+	}
+
+	// mandar copias para todos os processos
+    MPI_Bcast(&rows, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&cols, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&lines, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 	if (rows != cols) {
-		std::cerr << "O nro de linhas deve ser igual ao de colunas.\n";
+		if (rank == 0) {
+			std::cerr << "O nro de linhas deve ser igual ao de colunas.\n";
+		}
+
 		return;
 	}
 
-	SparseMatrix A(rows, cols, lines, 0);
+	SparseMatrix A(rank, nProcs, rows, cols, lines, 0);
 
-	int row, col; double value;
-	while (infile >> row >> col >> value) {
-		A.set(row - 1, col - 1, value);
+	// carrega matriz e calcula somente no 0
+	if (rank == 0) {
+		int row, col; double value;
+		while (infile >> row >> col >> value) {
+			A.set(row - 1, col - 1, value);
+		}
+		A.updateColsPtr();
 	}
-	A.updateColsPtr();
 
 	ColumnVector b(rows, valorVetor);
+	ColumnVector res = gradienteConjugado(rank, A, b);
 
-	ColumnVector res = gradienteConjugado(A, b);
-	res.print();
+	if (rank == 0) {
+		std::cout << "rank print = " << rank << "\n";
+		res.print();
+	}
 }
 
-void calcularBoeing(std::ifstream & infile, int valorVetor) {
+void calcularBoeing(int rank, int nProcs, std::ifstream & infile, int valorVetor) {
 	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // pula cabeçalho
 
 	std::string nop;
@@ -52,7 +68,7 @@ void calcularBoeing(std::ifstream & infile, int valorVetor) {
 		return;
 	}
 
-	SparseMatrix A(nLinhasMatriz, nColunasMatriz, nElementos, nLinhasMatriz + 1);
+	SparseMatrix A(0, 0, nLinhasMatriz, nColunasMatriz, nElementos, nLinhasMatriz + 1);
 
 	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
@@ -88,12 +104,15 @@ void calcularBoeing(std::ifstream & infile, int valorVetor) {
 	}
 
 	ColumnVector b(nLinhasMatriz, valorVetor); // qual valor ?
-	ColumnVector res = gradienteConjugado(A, b);
+	ColumnVector res = gradienteConjugado(0, A, b);
 	res.print();
 }
 
 int main(int argc, char *argv[]) {
-	// todo: pre condicionadores do gradiente conjugado
+	// todos:
+	//	- pre condicionadores do gradiente conjugado
+	// 	- armazenar metade da matriz apenas
+	//	- multiplicao nao funciona para matrizes quadradas
 
 	if (argc != 4) {
 		std::cerr << "<$1> = caminho do arquivo\n"
@@ -108,17 +127,25 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
+    int rank, nProcs;
+
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &nProcs);
+
 	int valorVetor = std::atoi(argv[3]);
 
 	int formato = std::atoi(argv[2]);
 	if (formato == 2) {
-		calcularMTX(infile, valorVetor);
+		calcularMTX(rank, nProcs, infile, valorVetor);
 	} else if (formato == 1) {
-		calcularBoeing(infile, valorVetor);
+		calcularBoeing(rank, nProcs, infile, valorVetor);
 	} else {
 		std::cerr << "Formato de arquivo inválido.\n";
 		return -1;
 	}
+
+    MPI_Finalize();
 
 	return 0;
 }
