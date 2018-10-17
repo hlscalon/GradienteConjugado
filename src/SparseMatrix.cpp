@@ -19,23 +19,14 @@ void SparseMatrix::set(const int row, const int col, const double value) {
 ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	const int bCols = b.getSize();
 
-	assert(bCols == _nCols * 2 + 1);
+	assert(bCols == _nCols);
 
 	ColumnVector colVector(bCols);
 
-	for (auto i = 0; i < _nCols; ++i) { // bCols / 2
+	for (auto i = 0; i < _nCols; ++i) {
 		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
 			colVector(_rowsIdx[k]) += _values[k] * b(i);
 		}
-	}
-
-	const ColumnVector aux(colVector);
-	for (auto i = 0; i < bCols; ++i) {
-		colVector(i) += aux(bCols - 1 - i);
-	}
-
-	for (auto k = _colsPtr[_nCols]; k < _colsPtr[_nCols + 1]; ++k) {
-		colVector(_rowsIdx[k]) += _values[k] * b(_nCols);
 	}
 
 	return colVector;
@@ -55,4 +46,11 @@ void SparseMatrix::printCSC() const {
 		std::cout << v << " ";
 	}
 	std::cout << "\n";
+
+	// for (auto i = 0; i < _colsPtr.size() - 1; ++i) {
+	// 	std::cout << "coluna " << i << "\n";
+	// 	for (auto l = _colsPtr[i]; l < _colsPtr[i + 1]; l++) {
+	// 		std::cout << "linha = " << _rowsIdx[l] << " valor = " << _values[l] << "\n";
+	// 	}
+	// }
 }

@@ -20,3 +20,5 @@ Testado com:
 
 - g++ 8.1.1 20180712 (Red Hat 8.1.1-5)
 - Fedora 28
+
+**Artigo formato SBC Template conference**

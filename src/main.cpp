@@ -20,14 +20,11 @@ void calcularMTX(std::ifstream & infile, int valorVetor) {
 	}
 
 	// funciona somente para matrizes impares
-	cols = cols / 2;
 	SparseMatrix A(rows, cols, lines, 0);
 
 	int row, col; double value;
 	while (infile >> row >> col >> value) {
-		if (col - 1 <= cols) {
-			A.set(row - 1, col - 1, value);
-		}
+		A.set(row - 1, col - 1, value);
 	}
 	A.updateColsPtr();
 
@@ -87,7 +84,7 @@ void calcularBoeing(std::ifstream & infile, int valorVetor) {
 		iss.str(linha);
 		iss.clear();
 		while (iss >> value) {
-			A.setValue(idx++, value - 1);
+			A.setValue(idx++, value);
 		}
 	}
 

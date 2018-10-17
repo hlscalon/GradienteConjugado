@@ -20,9 +20,6 @@ public:
 	}
 
 	inline void updateColsPtr() {
-		// remover valores desnecessarios
-		_values.erase(_values.begin() + _colPtr, _values.end());
-		_rowsIdx.erase(_rowsIdx.begin() + _colPtr, _rowsIdx.end());
 		_colsPtr.push_back(_colPtr++);
 		_nValues = _colPtr;
 	}
