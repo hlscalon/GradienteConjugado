@@ -19,7 +19,6 @@ void calcularMTX(std::ifstream & infile, int valorVetor) {
 		return;
 	}
 
-	// funciona somente para matrizes impares
 	SparseMatrix A(rows, cols, lines, 0);
 
 	int row, col; double value;
@@ -27,6 +26,10 @@ void calcularMTX(std::ifstream & infile, int valorVetor) {
 		A.set(row - 1, col - 1, value);
 	}
 	A.updateColsPtr();
+
+	#ifdef DEBUG
+	A.printCSC();
+	#endif
 
 	ColumnVector b(rows, valorVetor);
 
@@ -87,6 +90,10 @@ void calcularBoeing(std::ifstream & infile, int valorVetor) {
 			A.setValue(idx++, value);
 		}
 	}
+
+	#ifdef DEBUG
+	A.printCSC();
+	#endif
 
 	ColumnVector b(nLinhasMatriz, valorVetor); // qual valor ?
 	ColumnVector res = gradienteConjugado(A, b);

@@ -23,10 +23,20 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 
 	ColumnVector colVector(bCols);
 
-	for (auto i = 0; i < _nCols; ++i) {
+	int metade = _nCols / 2;
+	for (auto i = 0; i < metade; ++i) {
 		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
 			colVector(_rowsIdx[k]) += _values[k] * b(i);
 		}
+	}
+
+	ColumnVector aux(colVector);
+	for (int i = 0; i < _nCols; ++i) {
+		colVector(i) += aux(_nCols - i - 1);
+	}
+
+	for (int k = _colsPtr[metade]; k < _colsPtr[metade + 1]; ++k) {
+		colVector(_rowsIdx[k]) += _values[k] * b(metade);
 	}
 
 	return colVector;

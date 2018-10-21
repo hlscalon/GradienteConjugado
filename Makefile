@@ -3,7 +3,7 @@ CFLAGS = -O3 -Wall -std=c++11
 LIBS =
 SOURCES = src/*.cpp
 OBJECT = gradiente_conjugado
-DEBUG = #-g
+DEBUG = #-DDEBUG #-g
 PROFILER = -lprofiler
 
 main:
