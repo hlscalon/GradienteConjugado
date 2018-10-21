@@ -19,7 +19,7 @@ void calcularMTX(std::ifstream & infile, int valorVetor) {
 		return;
 	}
 
-	SparseMatrix A(rows, cols, lines, 0);
+	SparseMatrix A(rows, cols, lines);
 
 	int row, col; double value;
 	while (infile >> row >> col >> value) {
@@ -56,28 +56,37 @@ void calcularBoeing(std::ifstream & infile, int valorVetor) {
 		return;
 	}
 
-	SparseMatrix A(nLinhasMatriz, nColunasMatriz, nElementos, nLinhasMatriz + 1);
+	// funciona para impar apenas
+	int metade = nColunasMatriz / 2; // trunca para + 1
+	SparseMatrix A(nLinhasMatriz, nColunasMatriz, nElementos, metade + 1);
 
 	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
 	std::string linha; int i = 0; int idx = 0; std::istringstream iss;
 
+	int ultIdxCol = 0;
 	int colPtr;
 	while (i++ < nLinhasColsPtr && std::getline(infile, linha)) {
 		iss.str(linha);
 		iss.clear();
 		while (iss >> colPtr) {
-			A.setColPtr(idx++, colPtr - 1);
+			if (idx++ <= metade + 1) {
+				A.setColPtr(colPtr - 1);
+				ultIdxCol = colPtr - 1;
+			}
 		}
 	}
 
+	ultIdxCol--; // ultima coluna é 1 + do que o ultimo
 	i = 0; idx = 0;
 	int rowIdx;
 	while (i++ < nLinhasRowsIdx && std::getline(infile, linha)) {
 		iss.str(linha);
 		iss.clear();
 		while (iss >> rowIdx) {
-			A.setRowIdx(idx++, rowIdx - 1);
+			if (idx++ <= ultIdxCol) {
+				A.setRowIdx(rowIdx - 1);
+			}
 		}
 	}
 
@@ -87,7 +96,9 @@ void calcularBoeing(std::ifstream & infile, int valorVetor) {
 		iss.str(linha);
 		iss.clear();
 		while (iss >> value) {
-			A.setValue(idx++, value);
+			if (idx++ <= ultIdxCol) {
+				A.setValue(value);
+			}
 		}
 	}
 

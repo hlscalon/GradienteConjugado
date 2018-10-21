@@ -24,6 +24,7 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	ColumnVector colVector(bCols);
 
 	int metade = _nCols / 2;
+
 	for (auto i = 0; i < metade; ++i) {
 		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
 			colVector(_rowsIdx[k]) += _values[k] * b(i);
