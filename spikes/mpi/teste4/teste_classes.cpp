@@ -8,43 +8,29 @@
 struct Matrix {
 	Matrix(int rank, int nprocs) : _rank(rank), _nprocs(nprocs) {}
 
-	std::vector<int> operator*(int valor) const {
-		// int size = 0;
-		// if (_rank == 0) {
-		//	 size = _nums.size() / _nprocs;
-		// }
+	std::vector<double> operator*(const std::vector<double> & b) {
+		const int bsize = b.size();
+		std::vector<double> res(bsize);
 
-		// std::vector<int> res;
+		const int csize = _colsPtr.size();
+		for (auto i = 0; i < csize - 1; ++i) {
+			const int coluna = _colunas[i];
+			for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
+				res[_rowsIdx[k]] += _values[k] * b[coluna];
+			}
+		}
 
-		// MPI_Bcast(&size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+		std::vector<double> res_total(bsize);
+		//MPI_Reduce(res.data(), res_total.data(), bsize, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Allreduce(res.data(), res_total.data(), bsize, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
-		// res.resize(size);
-
-		// // dividir matriz
-		// MPI_Scatter(const_cast<int*>(_nums.data()), size, MPI_INT, res.data(), size, MPI_INT, 0, MPI_COMM_WORLD);
-
-		// for (int i = 0; i < size; ++i) {
-		//	 res[i] *= valor;
-		// }
-
-		// // reunir no 0
-		// std::vector<int> res_total;
-		// if (_rank == 0) {
-		//	 res_total.resize(_nums.size());
-		// }
-
-		// MPI_Gather(res.data(), size, MPI_INT, res_total.data(), size, MPI_INT, 0, MPI_COMM_WORLD);
-
-		// return res_total;
-		return {};
+		return res_total;
 	}
 
 	void printar() const {
 		std::stringstream iss;
 
 		iss << "rank = " << _rank << "\n";
-		// for (const auto & n : _nums) iss << n << " ";
-
 		iss << "_values = ";
 		for (const auto & v : _values) { iss << v << " "; }
 
@@ -107,12 +93,6 @@ int main(int argc, char** argv) {
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	// if (size < 2) {
-	// 	if (rank == 0)
-	// 		std::cerr << "Require at least 2 tasks" << std::endl;
-	// 	MPI_Abort(MPI_COMM_WORLD, 1);
-	// }
-
 	std::vector<Dados> dados;
 	dados.reserve(size);
 
@@ -127,7 +107,11 @@ int main(int argc, char** argv) {
 			Dados d;
 
 			int colFinal = (proc + 1) * colPorProc;
+			int offsetCol = -1;
 			for (int colAtual = proc * colPorProc; colAtual < colFinal && colAtual < sizeColsPtr; ++colAtual) {
+				if (offsetCol == -1) {
+					offsetCol = colsPtr[colAtual];
+				}
 
 				if (colAtual < sizeColsPtr - 1) {
 					d.colunas.push_back(colAtual);
@@ -139,15 +123,16 @@ int main(int argc, char** argv) {
 					d.rowsIdx.push_back(rowsIdx[j]);
 				}
 
-				d.colsPtr.push_back(colsPtr[colAtual]);
+				d.colsPtr.push_back(colsPtr[colAtual] - offsetCol);
 			}
 
 			if (colFinal < sizeColsPtr) {
-				d.colsPtr.push_back(colsPtr[colFinal]);
+				d.colsPtr.push_back(colsPtr[colFinal] - offsetCol);
 			}
 
-			if (!d.values.empty())
+			if (!d.values.empty()) {
 				dados.push_back(d); // proc
+			}
 		}
 	}
 
@@ -226,7 +211,16 @@ int main(int argc, char** argv) {
 
 	t.printar();
 
-	// run(t, rank);
+	std::vector<double> b{ 1, 2, 3, 4, 5 };
+	std::vector<double> res = t * b;
+
+	// if (rank == 0) {
+		std::stringstream issR;
+		issR << "rank = " << rank << " res = ";
+		for (auto r : res) issR << r << " ";
+		issR << "\n";
+		std::cout << issR.str();
+	// }
 
 	MPI_Finalize();
 
