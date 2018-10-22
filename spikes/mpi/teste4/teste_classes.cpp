@@ -3,6 +3,7 @@
 #include <iostream>
 #include <numeric>
 #include <cmath>
+#include <sstream>
 
 struct Matrix {
 	Matrix(int rank, int nprocs) : _rank(rank), _nprocs(nprocs) {}
@@ -39,31 +40,42 @@ struct Matrix {
 	}
 
 	void printar() const {
-		std::cout << "rank = " << _rank << "\n";
-		// for (const auto & n : _nums) std::cout << n << " ";
+		std::stringstream iss;
 
-		std::cout << "_values = ";
-		for (const auto & v : _values) { std::cout << v << " "; }
+		iss << "rank = " << _rank << "\n";
+		// for (const auto & n : _nums) iss << n << " ";
 
-		std::cout << "\n_rowsIdx = ";
-		for (const auto & r : _rowsIdx) { std::cout << r << " "; }
+		iss << "_values = ";
+		for (const auto & v : _values) { iss << v << " "; }
 
-		std::cout << "\n_colsPtr = ";
-		for (const auto & c : _colsPtr) { std::cout << c << " "; }
+		iss << "\n_rowsIdx = ";
+		for (const auto & r : _rowsIdx) { iss << r << " "; }
 
-		std::cout << "\n";
+		iss << "\n_colsPtr = ";
+		for (const auto & c : _colsPtr) { iss << c << " "; }
+
+		iss << "\n_colunas = ";
+		for (const auto & c : _colunas) { iss << c << " "; }
+
+		iss << "\n";
+
+		std::cout << iss.str();
 	}
 
-	void addValues(std::initializer_list<double> values) {
-		_values = std::vector<double>(values);
+	void addValues(const std::vector<double> & values) {
+		_values = values;
 	}
 
-	void addRowsIdx(std::initializer_list<int> rowsIdx) {
-		_rowsIdx = std::vector<int>(rowsIdx);
+	void addRowsIdx(const std::vector<int> & rowsIdx) {
+		_rowsIdx = rowsIdx;
 	}
 
-	void addColsPtr(std::initializer_list<int> colsPtr) {
-		_colsPtr = std::vector<int>(colsPtr);
+	void addColsPtr(const std::vector<int> & colsPtr) {
+		_colsPtr = colsPtr;
+	}
+
+	void addColunas(const std::vector<int> & colunas) {
+		_colunas = colunas;
 	}
 
 private:
@@ -72,6 +84,7 @@ private:
 	std::vector<double> _values;
 	std::vector<int> _rowsIdx;
 	std::vector<int> _colsPtr;
+	std::vector<int> _colunas;
 };
 
 void run(const Matrix & t, int rank) {
@@ -157,20 +170,61 @@ int main(int argc, char** argv) {
 		}
 	}
 
+	const int lentag = 0;
+	const int datatag = 1;
 	Matrix t(rank, size);
-	// if (rank == 0) {
+	if (rank == 0) {
+		for (int proc = 1; proc < size; ++proc) {
 
-	// 	for (int i = 1; i < size; ++i) {
-	// 		MPI_Send( &len, 1, MPI_INT, 1, lentag, MPI_COMM_WORLD );
-	// 		MPI_Send( send_vec.data(), len, MPI_INT, 1, datatag, MPI_COMM_WORLD );
-	// 	}
+			int lenValues = dados[proc].values.size();
+			MPI_Send(&lenValues, 1, MPI_INT, proc, lentag, MPI_COMM_WORLD);
+			MPI_Send(dados[proc].values.data(), lenValues, MPI_DOUBLE, proc, datatag, MPI_COMM_WORLD);
 
-	// 	t.addValues();
-	// 	t.addRowsIdx();
-	// 	t.addColsPtr();
-	// } else {
+			int lenRowsIdx = dados[proc].rowsIdx.size();
+			MPI_Send(&lenRowsIdx, 1, MPI_INT, proc, lentag, MPI_COMM_WORLD);
+			MPI_Send(dados[proc].rowsIdx.data(), lenRowsIdx, MPI_INT, proc, datatag, MPI_COMM_WORLD);
 
-	// }
+			int lenColsPtr = dados[proc].colsPtr.size();
+			MPI_Send(&lenColsPtr, 1, MPI_INT, proc, lentag, MPI_COMM_WORLD);
+			MPI_Send(dados[proc].colsPtr.data(), lenColsPtr, MPI_INT, proc, datatag, MPI_COMM_WORLD);
+
+			int lenColunas = dados[proc].colunas.size();
+			MPI_Send(&lenColunas, 1, MPI_INT, proc, lentag, MPI_COMM_WORLD);
+			MPI_Send(dados[proc].colunas.data(), lenColunas, MPI_INT, proc, datatag, MPI_COMM_WORLD);
+		}
+
+		t.addValues(dados[0].values);
+		t.addRowsIdx(dados[0].rowsIdx);
+		t.addColsPtr(dados[0].colsPtr);
+		t.addColunas(dados[0].colunas);
+	} else {
+		int lenValues;
+		MPI_Recv(&lenValues, 1, MPI_INT, 0, lentag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		std::vector<double> values_rec(lenValues);
+		MPI_Recv(values_rec.data(), lenValues, MPI_DOUBLE, 0, datatag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		int lenRowsIdx;
+		MPI_Recv(&lenRowsIdx, 1, MPI_INT, 0, lentag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		std::vector<int> rowsIdx_rec(lenRowsIdx);
+		MPI_Recv(rowsIdx_rec.data(), lenRowsIdx, MPI_INT, 0, datatag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		int lenColsPtr;
+		MPI_Recv(&lenColsPtr, 1, MPI_INT, 0, lentag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		std::vector<int> colsPtr_rec(lenColsPtr);
+		MPI_Recv(colsPtr_rec.data(), lenColsPtr, MPI_INT, 0, datatag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		int lenColunas;
+		MPI_Recv(&lenColunas, 1, MPI_INT, 0, lentag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		std::vector<int> colunas_rec(lenColunas);
+		MPI_Recv(colunas_rec.data(), lenColunas, MPI_INT, 0, datatag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		t.addValues(values_rec);
+		t.addRowsIdx(rowsIdx_rec);
+		t.addColsPtr(colsPtr_rec);
+		t.addColunas(colunas_rec);
+	}
+
+	t.printar();
 
 	// run(t, rank);
 
