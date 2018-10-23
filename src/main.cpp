@@ -7,7 +7,11 @@
 #include <sstream>
 #include <limits>
 #include <cmath>
-#include "mpi.h"
+#include <mpi.h>
+
+#ifdef MPE_LOG
+#include <mpe.h>
+#endif
 
 struct DadosMPI {
 	std::vector<double> values;
@@ -189,19 +193,47 @@ void calcularBoeing(const int rank, const int size, std::ifstream & infile, cons
 	MPI_Bcast(&nLinhasMatriz, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	SparseMatrix A(Tipo::Boeing, rank, size, nLinhasMatriz, nLinhasMatriz);
 
+	#ifdef MPE_LOG
+	int evSend1, evSend2, evRecv1, evRecv2;
+
+	MPE_Init_log();
+
+	evSend1 = MPE_Log_get_event_number();
+	evSend2 = MPE_Log_get_event_number();
+	evRecv1 = MPE_Log_get_event_number();
+	evRecv2 = MPE_Log_get_event_number();
+
 	if (rank == 0) {
+		MPE_Describe_state(evSend1, evSend2, "Send", "gray");
+		MPE_Describe_state(evRecv1, evRecv2, "Recv", "red");
+	}
+
+	MPE_Start_log();
+	#endif
+
+	if (rank == 0) {
+		#ifdef MPE_LOG
+		MPE_Log_event(evSend1, 0, "Inicio do Send");
+		#endif
 		for (int proc = 1; proc < size; ++proc) {
 			sendVectorMPI(proc, dados[proc].values, MPI_DOUBLE);
 			sendVectorMPI(proc, dados[proc].rowsIdx, MPI_INT);
 			sendVectorMPI(proc, dados[proc].colsPtr, MPI_INT);
 			sendVectorMPI(proc, dados[proc].colunas, MPI_INT);
 		}
+		#ifdef MPE_LOG
+		MPE_Log_event(evSend2, 0, "Fim do Send");
+		#endif
 
 		A.setValues(dados[0].values);
 		A.setRowsIdx(dados[0].rowsIdx);
 		A.setColsPtr(dados[0].colsPtr);
 		A.setColunas(dados[0].colunas);
 	} else {
+		#ifdef MPE_LOG
+		MPE_Log_event(evRecv1, 0, "Inicio do Recv");
+		#endif
+
 		std::vector<double> values_rec;
 		recvVectorMPI(values_rec, MPI_DOUBLE);
 
@@ -214,11 +246,19 @@ void calcularBoeing(const int rank, const int size, std::ifstream & infile, cons
 		std::vector<int> colunas_rec;
 		recvVectorMPI(colunas_rec, MPI_INT);
 
+		#ifdef MPE_LOG
+		MPE_Log_event(evRecv2, 0, "Fim do Recv");
+		#endif
+
 		A.setValues(values_rec);
 		A.setRowsIdx(rowsIdx_rec);
 		A.setColsPtr(colsPtr_rec);
 		A.setColunas(colunas_rec);
 	}
+
+	#ifdef MPE_LOG
+	MPE_Finish_log("jumpshot");
+	#endif
 
 	#ifdef DEBUG
 	A.printCSC();

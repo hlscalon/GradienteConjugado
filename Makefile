@@ -5,9 +5,10 @@ SOURCES = src/*.cpp
 OBJECT = gradiente_conjugado
 DEBUG = #-DDEBUG #-g
 PROFILER = -lprofiler
+MPE = -DMPE_LOG -lmpe
 
 main:
-	$(CC) $(CFLAGS) $(LIBS) $(SOURCES) -o $(OBJECT) $(DEBUG) $(PROFILER)
+	$(CC) $(CFLAGS) $(LIBS) $(SOURCES) -o $(OBJECT) $(DEBUG) $(PROFILER) $(MPE)
 
 run:
 	mpirun -np $(NPROCS) ./$(OBJECT) $(ARQ) $(TIPO) $(VALORB)
