@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cassert>
 #include <cmath>
+#include <sstream>
+#include "mpi.h"
 
 void SparseMatrix::set(const int row, const int col, const double value) {
 	_values[_colPtr] = value;
@@ -16,7 +18,7 @@ void SparseMatrix::set(const int row, const int col, const double value) {
 	_colPtr++;
 }
 
-ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
+ColumnVector SparseMatrix::multiMTX(const ColumnVector & b) const {
 	const int bCols = b.getSize();
 
 	assert(bCols == _nCols);
@@ -43,25 +45,57 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	return colVector;
 }
 
-void SparseMatrix::printCSC() const {
-	std::cout << "_values: " << "\n";
-	for (const auto & v : _values) {
-		std::cout << v << " ";
-	}
-	std::cout << "\n_rowsIdx: " << "\n";
-	for (const auto & v : _rowsIdx) {
-		std::cout << v << " ";
-	}
-	std::cout << "\n_colsPtr: " << "\n";
-	for (const auto & v : _colsPtr) {
-		std::cout << v << " ";
-	}
-	std::cout << "\n";
+ColumnVector SparseMatrix::multiBoeing(const ColumnVector & b) const {
+	const int bCols = b.getSize();
+	ColumnVector res(bCols);
 
-	// for (auto i = 0; i < _colsPtr.size() - 1; ++i) {
-	// 	std::cout << "coluna " << i << "\n";
-	// 	for (auto l = _colsPtr[i]; l < _colsPtr[i + 1]; l++) {
-	// 		std::cout << "linha = " << _rowsIdx[l] << " valor = " << _values[l] << "\n";
-	// 	}
-	// }
+	int offset = 1;
+	// ultimo processo tem a metade
+	bool ultimoProc = _rank == _nprocs - 1;
+	if (ultimoProc) {
+		offset = 2;
+	}
+
+	const int colsSize = _colsPtr.size();
+	for (auto i = 0; i < colsSize - offset; ++i) {
+		const int coluna = _colunas[i];
+		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
+			res(_rowsIdx[k]) += _values[k] * b(coluna);
+		}
+	}
+
+	ColumnVector aux(res);
+	for (int i = 0; i < bCols; ++i) {
+		res(i) += aux(bCols - i - 1);
+	}
+
+	if (ultimoProc) {
+		const int ultimaCol = colsSize - 2;
+		const int coluna = _colunas[ultimaCol];
+		for (auto k = _colsPtr[ultimaCol]; k < _colsPtr[ultimaCol + 1]; ++k) {
+			res(_rowsIdx[k]) += _values[k] * b(coluna);
+		}
+	}
+
+	ColumnVector res_total(bCols);
+	MPI_Allreduce(res.data(), res_total.data(), bCols, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	return res_total;
+}
+
+ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
+	if (_tipo == Tipo::MTX) {
+		return this->multiMTX(b);
+	}
+
+	return this->multiBoeing(b);
+}
+
+void SparseMatrix::printCSC() const {
+	std::stringstream iss;
+	iss << "_rank = " << _rank << "\n";
+	iss << "_values: " << "\n"; for (const auto & v : _values) iss << v << " "; iss << "\n";
+	iss << "_rowsIdx: " << "\n"; for (const auto & v : _rowsIdx) iss << v << " "; iss << "\n";
+	iss << "_colsPtr: " << "\n"; for (const auto & v : _colsPtr) iss << v << " "; iss << "\n";
+	iss << "_colunas: " << "\n"; for (const auto & v : _colunas) iss << v << " "; iss << "\n";
+	std::cout << iss.str();
 }

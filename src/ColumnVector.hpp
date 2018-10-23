@@ -8,6 +8,11 @@ public:
 	ColumnVector(const std::initializer_list<double> list) : _matrix(list), _size(_matrix.size()) {}
 	ColumnVector(const int size) : _matrix(size), _size(size) {}
 	ColumnVector(const int size, const int value) : _matrix(size, value), _size(size) {}
+	ColumnVector(const std::vector<double> & matrix) : _matrix(matrix), _size(matrix.size()) {}
+
+	inline double * data() {
+		return _matrix.data();
+	}
 
 	inline int getSize() const {
 		return _size;

@@ -1,6 +1,7 @@
 #include "ColumnVector.hpp"
 
 #include <iostream>
+#include <sstream>
 #include <cassert>
 
 double ColumnVector::operator*(const ColumnVector & b) const {
@@ -47,7 +48,9 @@ ColumnVector ColumnVector::operator-(const ColumnVector & b) const {
 }
 
 void ColumnVector::print() const {
+	std::stringstream iss;
 	for (const auto & x : _matrix) {
-		std::cout << x << "\n";
+		iss << x << "\n";
 	}
+	std::cout << iss.str();
 }
