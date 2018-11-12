@@ -75,47 +75,36 @@ bool carregarVetoresCSC(std::ifstream & infile, std::vector<double> & values, st
 	rowsIdx.reserve(nElementos);
 
 	// funciona para impar apenas
-	int metade = nColunasMatriz / 2; // trunca para + 1
-
 	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
-	std::string linha; int i = 0; int idx = 0; std::istringstream iss;
+	std::string linha; int i = 0; std::istringstream iss;
 
-	int ultIdxCol = 0;
 	int colPtr;
 	while (i++ < nLinhasColsPtr && std::getline(infile, linha)) {
 		iss.str(linha);
 		iss.clear();
 		while (iss >> colPtr) {
-			if (idx++ <= metade + 1) {
-				colsPtr.push_back(colPtr - 1);
-				ultIdxCol = colPtr - 1;
-			}
+			colsPtr.push_back(colPtr - 1);
 		}
 	}
 
-	ultIdxCol--; // ultima coluna é 1 + do que o ultimo
-	i = 0; idx = 0;
+	i = 0;
 	int rowIdx;
 	while (i++ < nLinhasRowsIdx && std::getline(infile, linha)) {
 		iss.str(linha);
 		iss.clear();
 		while (iss >> rowIdx) {
-			if (idx++ <= ultIdxCol) {
-				rowsIdx.push_back(rowIdx - 1);
-			}
+			rowsIdx.push_back(rowIdx - 1);
 		}
 	}
 
-	i = 0; idx = 0;
+	i = 0;
 	double value;
 	while (i++ < nLinhasValues && std::getline(infile, linha)) {
 		iss.str(linha);
 		iss.clear();
 		while (iss >> value) {
-			if (idx++ <= ultIdxCol) {
-				values.push_back(value);
-			}
+			values.push_back(value);
 		}
 	}
 
@@ -156,11 +145,13 @@ void calcularBoeing(const int rank, const int size, std::ifstream & infile, cons
 		}
 
 		int sizeColsPtr = colsPtr.size();
-		int colPorProc = std::floor(colsPtr.size() / size);
+		int colPorProc = colsPtr.size() / size;
+		int restoColsProc = colsPtr.size() % size;
 		for (int proc = 0; proc < size; ++proc) {
 			DadosMPI d;
 
-			int colFinal = (proc + 1) * colPorProc;
+			int resto = proc == size - 1 ? restoColsProc : 0;
+			int colFinal = ((proc + 1) * colPorProc) + resto;
 			int offsetCol = -1;
 			for (int colAtual = proc * colPorProc; colAtual < colFinal && colAtual < sizeColsPtr; ++colAtual) {
 				if (offsetCol == -1) {

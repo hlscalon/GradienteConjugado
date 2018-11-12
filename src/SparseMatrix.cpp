@@ -49,31 +49,15 @@ ColumnVector SparseMatrix::multiBoeing(const ColumnVector & b) const {
 	const int bCols = b.getSize();
 	ColumnVector res(bCols);
 
-	int offset = 1;
-	// ultimo processo tem a metade
-	bool ultimoProc = _rank == _nprocs - 1;
-	if (ultimoProc) {
-		offset = 2;
-	}
-
 	const int colsSize = _colsPtr.size();
-	for (auto i = 0; i < colsSize - offset; ++i) {
+	for (auto i = 0; i < colsSize - 1; ++i) {
 		const int coluna = _colunas[i];
 		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
-			res(_rowsIdx[k]) += _values[k] * b(coluna);
-		}
-	}
-
-	ColumnVector aux(res);
-	for (int i = 0; i < bCols; ++i) {
-		res(i) += aux(bCols - i - 1);
-	}
-
-	if (ultimoProc) {
-		const int ultimaCol = colsSize - 2;
-		const int coluna = _colunas[ultimaCol];
-		for (auto k = _colsPtr[ultimaCol]; k < _colsPtr[ultimaCol + 1]; ++k) {
-			res(_rowsIdx[k]) += _values[k] * b(coluna);
+			double tmp = _values[k] * b(coluna);
+			res(_rowsIdx[k]) += tmp;
+			if (coluna != _rowsIdx[k]) { // se nao for diagonal
+				res(bCols - _rowsIdx[k] - 1) += tmp;
+			}
 		}
 	}
 
