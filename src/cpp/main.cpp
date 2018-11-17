@@ -8,6 +8,7 @@
 #include <limits>
 #include <cmath>
 #include <mpi.h>
+#include <iohb.h>
 
 #ifdef MPE_LOG
 #include <mpe.h>
@@ -20,92 +21,27 @@ struct DadosMPI {
 	std::vector<int> colunas;
 };
 
-void calcularMTX(std::ifstream & infile, const int valorVetor) {
-	std::string nop;
-	std::getline(infile, nop); // pula 1 linha
+bool carregarVetoresCSC(const std::string & arquivo, std::vector<double> & values, std::vector<int> & colsPtr, std::vector<int> & rowsIdx, int & nLinhasMatriz) {
+	char * _lixo1;
+	int nLinhas, nColunas, nValores, _lixo2;
+	int retorno = readHB_info(arquivo.c_str(), &nLinhas, &nColunas, &nValores, &_lixo1, &_lixo2);
 
-	int rows, cols, lines;
-	infile >> rows >> cols >> lines;
-
-	if (rows != cols) {
-		std::cerr << "O nro de linhas deve ser igual ao de colunas.\n";
-		return;
-	}
-
-	SparseMatrix A(Tipo::MTX, 0, 0, rows, cols, lines);
-
-	int row, col; double value;
-	while (infile >> row >> col >> value) {
-		A.set(row - 1, col - 1, value);
-	}
-	A.updateColsPtr();
-
-	#ifdef DEBUG
-	A.printCSC();
-	#endif
-
-	ColumnVector b(rows, valorVetor);
-
-	ColumnVector res = gradienteConjugado(A, b);
-	res.print();
-}
-
-bool carregarVetoresCSC(std::ifstream & infile, std::vector<double> & values, std::vector<int> & colsPtr, std::vector<int> & rowsIdx, int & nLinhasMatriz) {
-	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // pula cabeçalho
-
-	int nLinhasColsPtr, nLinhasRowsIdx, nLinhasValues;
-	std::string nop;
-	infile >> nop >> nLinhasColsPtr >> nLinhasRowsIdx >> nLinhasValues;
-
-	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // ignora ate o final da linha
-
-	int nColunasMatriz, nElementos;
-	infile >> nop >> nLinhasMatriz >> nColunasMatriz >> nElementos;
-
-	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // ignora ate o final da linha
-
-	if (nLinhasMatriz != nColunasMatriz) {
-		std::cerr << "O nro de linhas deve ser igual ao de colunas.\n";
+	if (retorno == 0) {
+		std::cerr << "Erro ao ler arquivo.\n";
 		return false;
 	}
 
-	// nElementos maximo
-	values.reserve(nElementos);
-	colsPtr.reserve(nElementos);
-	rowsIdx.reserve(nElementos);
+	nLinhasMatriz = nColunas;
 
-	// funciona para impar apenas
-	infile.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	values.resize(nValores);
+	rowsIdx.resize(nValores);
+	colsPtr.resize(nColunas + 1);
 
-	std::string linha; int i = 0; std::istringstream iss;
+	retorno = readHB_mat_double(arquivo.c_str(), &colsPtr[0], &rowsIdx[0], &values[0]);
 
-	int colPtr;
-	while (i++ < nLinhasColsPtr && std::getline(infile, linha)) {
-		iss.str(linha);
-		iss.clear();
-		while (iss >> colPtr) {
-			colsPtr.push_back(colPtr - 1);
-		}
-	}
-
-	i = 0;
-	int rowIdx;
-	while (i++ < nLinhasRowsIdx && std::getline(infile, linha)) {
-		iss.str(linha);
-		iss.clear();
-		while (iss >> rowIdx) {
-			rowsIdx.push_back(rowIdx - 1);
-		}
-	}
-
-	i = 0;
-	double value;
-	while (i++ < nLinhasValues && std::getline(infile, linha)) {
-		iss.str(linha);
-		iss.clear();
-		while (iss >> value) {
-			values.push_back(value);
-		}
+	if (retorno == 0){
+		std::cerr << "Erro ao ler arquivo.\n";
+		return false;
 	}
 
 	return true;
@@ -130,7 +66,7 @@ void recvVectorMPI(std::vector<T> & vec, MPI_Datatype type) {
 	MPI_Recv(vec.data(), len, type, 0, datatag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 }
 
-void calcularBoeing(const int rank, const int size, std::ifstream & infile, const int valorVetor) {
+void calcularBoeing(const int rank, const int size, const std::string & arquivo, const int valorVetor) {
 	std::vector<DadosMPI> dados;
 	dados.reserve(size);
 
@@ -140,7 +76,7 @@ void calcularBoeing(const int rank, const int size, std::ifstream & infile, cons
 		std::vector<int> colsPtr;
 		std::vector<int> rowsIdx;
 
-		if (!carregarVetoresCSC(infile, values, colsPtr, rowsIdx, nLinhasMatriz)) {
+		if (!carregarVetoresCSC(arquivo, values, colsPtr, rowsIdx, nLinhasMatriz)) {
 			return;
 		}
 
@@ -163,9 +99,11 @@ void calcularBoeing(const int rank, const int size, std::ifstream & infile, cons
 				}
 
 				int colProx = colAtual + 1;
-				for (int j = colsPtr[colAtual]; j < colsPtr[colProx]; ++j) {
-					d.values.push_back(values[j]);
-					d.rowsIdx.push_back(rowsIdx[j]);
+				if (colProx < sizeColsPtr) {
+					for (int j = colsPtr[colAtual]; j < colsPtr[colProx]; ++j) {
+						d.values.push_back(values[j]);
+						d.rowsIdx.push_back(rowsIdx[j]);
+					}
 				}
 
 				d.colsPtr.push_back(colsPtr[colAtual] - offsetCol);
@@ -272,36 +210,18 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if (argc != 4) {
+	if (argc != 3) {
 		std::cerr << "<$1> = caminho do arquivo\n"
-				  << "<$2> = formato do arquivo (1 = Harwell-Boeing, 2 = MTX)\n"
-				  << "<$3> = valor do vetor b.\n";
+				  << "<$2> = valor do vetor b.\n";
 
 		MPI_Abort(MPI_COMM_WORLD, 1);
 		return -1;
 	}
 
-	std::ifstream infile;
-	if (rank == 0) {
-		infile.open(argv[1], std::ios::binary);
-		if (!infile) {
-			std::cerr << "Não foi possível abrir o arquivo informado.\n";
-			MPI_Abort(MPI_COMM_WORLD, 1);
-			return -1;
-		}
-	}
+	std::string arquivo = argv[1];
+	int valorVetor = std::atoi(argv[2]);
 
-	int valorVetor = std::atoi(argv[3]);
-
-	int formato = std::atoi(argv[2]);
-	if (formato == 2) {
-		calcularMTX(infile, valorVetor);
-	} else if (formato == 1) {
-		calcularBoeing(rank, size, infile, valorVetor);
-	} else {
-		std::cerr << "Formato de arquivo inválido.\n";
-		return -1;
-	}
+	calcularBoeing(rank, size, arquivo, valorVetor);
 
 	MPI_Finalize();
 

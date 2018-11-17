@@ -54,9 +54,10 @@ ColumnVector SparseMatrix::multiBoeing(const ColumnVector & b) const {
 		const int coluna = _colunas[i];
 		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
 			double tmp = _values[k] * b(coluna);
-			res(_rowsIdx[k]) += tmp;
-			if (coluna != _rowsIdx[k]) { // se nao for diagonal
-				res(bCols - _rowsIdx[k] - 1) += tmp;
+			int rowsIdx = _rowsIdx[k];
+			res(rowsIdx) += tmp;
+			if (coluna != rowsIdx) { // se nao for diagonal
+				res(bCols - rowsIdx - 1) += tmp;
 			}
 		}
 	}
