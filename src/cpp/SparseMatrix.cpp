@@ -4,48 +4,27 @@
 #include <cassert>
 #include <cmath>
 #include <sstream>
-#include "mpi.h"
-
-void SparseMatrix::set(const int row, const int col, const double value) {
-	_values[_colPtr] = value;
-	_rowsIdx[_colPtr] = row;
-
-	if (col != _lastCol) {
-		_colsPtr.push_back(_colPtr);
-		_lastCol = col;
-	}
-
-	_colPtr++;
-}
 
 ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	const int bCols = b.getSize();
 	ColumnVector res(bCols);
 
-	const int colsSize = _colsPtr.size();
-	for (auto i = 0; i < colsSize - 1; ++i) {
-		const int coluna = _colunas[i];
-		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
-			double tmp = _values[k] * b(coluna);
-			int rowsIdx = _rowsIdx[k];
-			res(rowsIdx) += tmp;
-			if (coluna != rowsIdx) { // se nao for diagonal
-				res(bCols - rowsIdx - 1) += tmp;
-			}
+	for (int r = 0; r < bCols; ++r) {
+		for (int c = 0; c < bCols; ++c) {
+			res(r) += _matriz[r][c] * b(c);
 		}
 	}
 
-	ColumnVector res_total(bCols);
-	MPI_Allreduce(res.data(), res_total.data(), bCols, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	return res_total;
+	return res;
 }
 
-void SparseMatrix::printCSC() const {
+void SparseMatrix::print() const {
 	std::stringstream iss;
-	iss << "_rank = " << _rank << "\n";
-	iss << "_values: " << "\n"; for (const auto & v : _values) iss << v << " "; iss << "\n";
-	iss << "_rowsIdx: " << "\n"; for (const auto & v : _rowsIdx) iss << v << " "; iss << "\n";
-	iss << "_colsPtr: " << "\n"; for (const auto & v : _colsPtr) iss << v << " "; iss << "\n";
-	iss << "_colunas: " << "\n"; for (const auto & v : _colunas) iss << v << " "; iss << "\n";
+	for (int r = 0; r < _nRows; ++r) {
+		for (int c = 0; c <_nCols; ++c) {
+			iss << _matriz[r][c] << " ";
+		}
+		iss << "\n";
+	}
 	std::cout << iss.str();
 }
