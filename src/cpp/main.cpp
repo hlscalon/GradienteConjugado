@@ -120,7 +120,7 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 	}
 
 	MPI_Bcast(&nLinhasMatriz, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	SparseMatrix A(Tipo::Boeing, rank, size, nLinhasMatriz, nLinhasMatriz);
+	SparseMatrix A(rank, size, nLinhasMatriz, nLinhasMatriz);
 
 	#ifdef MPE_LOG
 	int evSend1, evSend2, evRecv1, evRecv2;

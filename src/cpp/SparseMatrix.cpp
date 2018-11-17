@@ -18,34 +18,7 @@ void SparseMatrix::set(const int row, const int col, const double value) {
 	_colPtr++;
 }
 
-ColumnVector SparseMatrix::multiMTX(const ColumnVector & b) const {
-	const int bCols = b.getSize();
-
-	assert(bCols == _nCols);
-
-	ColumnVector colVector(bCols);
-
-	int metade = _nCols / 2;
-
-	for (auto i = 0; i < metade; ++i) {
-		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
-			colVector(_rowsIdx[k]) += _values[k] * b(i);
-		}
-	}
-
-	ColumnVector aux(colVector);
-	for (int i = 0; i < _nCols; ++i) {
-		colVector(i) += aux(_nCols - i - 1);
-	}
-
-	for (int k = _colsPtr[metade]; k < _colsPtr[metade + 1]; ++k) {
-		colVector(_rowsIdx[k]) += _values[k] * b(metade);
-	}
-
-	return colVector;
-}
-
-ColumnVector SparseMatrix::multiBoeing(const ColumnVector & b) const {
+ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	const int bCols = b.getSize();
 	ColumnVector res(bCols);
 
@@ -65,14 +38,6 @@ ColumnVector SparseMatrix::multiBoeing(const ColumnVector & b) const {
 	ColumnVector res_total(bCols);
 	MPI_Allreduce(res.data(), res_total.data(), bCols, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 	return res_total;
-}
-
-ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
-	if (_tipo == Tipo::MTX) {
-		return this->multiMTX(b);
-	}
-
-	return this->multiBoeing(b);
 }
 
 void SparseMatrix::printCSC() const {

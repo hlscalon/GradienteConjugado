@@ -5,20 +5,11 @@
 
 #include <vector>
 
-enum class Tipo {
-	Boeing, MTX
-};
-
 class SparseMatrix {
 public:
-	// construtor Boeing
-	SparseMatrix(Tipo tipo, const int rank, const int nprocs, const int nRows, const int nCols) :
-		_tipo(tipo), _rank(rank), _nprocs(nprocs), _nRows(nRows), _nCols(nCols) {}
 
-	// construtor MTX
-	SparseMatrix(Tipo tipo, const int rank, const int nprocs, const int nRows, const int nCols, const int nValues) :
-		_tipo(tipo), _nRows(nRows), _nCols(nCols), _colPtr(0), _lastCol(-1),
-		_values(nValues), _rowsIdx(nValues) {}
+	SparseMatrix(const int rank, const int nprocs, const int nRows, const int nCols) :
+		_rank(rank), _nprocs(nprocs), _nRows(nRows), _nCols(nCols) {}
 
 	inline int getCols() const {
 		return _nCols;
@@ -59,7 +50,6 @@ public:
 	void printCSC() const;
 
 private:
-	Tipo _tipo;
 	int _rank;
 	int _nprocs;
 	int _nRows;
