@@ -24,13 +24,13 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 
 	const int colsSize = _colsPtr.size();
 	for (auto i = 0; i < colsSize - 1; ++i) {
-		const int coluna = _colunas[i];
+		const int coluna = i;
 		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
-			double tmp = _values[k] * b(coluna);
-			int rowsIdx = _rowsIdx[k];
-			res(rowsIdx) += tmp;
-			if (coluna != rowsIdx) { // se nao for diagonal
-				res(bCols - rowsIdx - 1) += tmp;
+			const int linha = _rowsIdx[k];
+			const double valor = _values[k];
+			res(linha) += valor * b(coluna);
+			if (coluna != linha) {
+				res(coluna) += valor * b(linha);
 			}
 		}
 	}
