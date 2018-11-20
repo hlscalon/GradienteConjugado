@@ -24,7 +24,7 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 
 	const int colsSize = _colsPtr.size();
 	for (auto i = 0; i < colsSize - 1; ++i) {
-		const int coluna = i;
+		const int coluna = _colunas[i];
 		for (auto k = _colsPtr[i]; k < _colsPtr[i + 1]; ++k) {
 			const int linha = _rowsIdx[k];
 			const double valor = _values[k];
