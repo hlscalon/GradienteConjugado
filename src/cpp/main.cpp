@@ -1,6 +1,8 @@
 #include "GradienteConjugado.hpp"
 #include "SparseMatrix.hpp"
 #include "ColumnVector.hpp"
+#include "DadosMPI.hpp"
+#include "SizesMPI.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -13,13 +15,6 @@
 #ifdef MPE_LOG
 #include <mpe.h>
 #endif
-
-struct DadosMPI {
-	std::vector<double> values;
-	std::vector<int> rowsIdx;
-	std::vector<int> colsPtr;
-	std::vector<int> colunas;
-};
 
 bool carregarVetoresCSC(const std::string & arquivo, std::vector<double> & values, std::vector<int> & colsPtr, std::vector<int> & rowsIdx, int & nLinhasMatriz) {
 	char * _lixo1;
@@ -69,6 +64,11 @@ void recvVectorMPI(std::vector<T> & vec, MPI_Datatype type) {
 void calcularBoeing(const int rank, const int size, const std::string & arquivo, const int valorVetor) {
 	std::vector<DadosMPI> dados;
 	dados.reserve(size);
+	std::vector<SizesMPI> sizes;
+	sizes.reserve(size);
+
+	const int lentag = 0;
+	const int datatag = 1;
 
 	int nLinhasMatriz = 0;
 	if (rank == 0) {
@@ -95,26 +95,29 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 				}
 
 				if (colAtual < sizeColsPtr - 1) {
-					d.colunas.push_back(colAtual);
+					d._colunas.push_back(colAtual);
 				}
 
 				int colProx = colAtual + 1;
 				if (colProx < sizeColsPtr) {
 					for (int j = colsPtr[colAtual]; j < colsPtr[colProx]; ++j) {
-						d.values.push_back(values[j]);
-						d.rowsIdx.push_back(rowsIdx[j]);
+						d._values.push_back(values[j]);
+						d._rowsIdx.push_back(rowsIdx[j]);
 					}
 				}
 
-				d.colsPtr.push_back(colsPtr[colAtual] - offsetCol);
+				d._colsPtr.push_back(colsPtr[colAtual] - offsetCol);
 			}
 
 			if (colFinal < sizeColsPtr) {
-				d.colsPtr.push_back(colsPtr[colFinal] - offsetCol);
+				d._colsPtr.push_back(colsPtr[colFinal] - offsetCol);
 			}
 
-			if (!d.values.empty()) {
+			if (!d._values.empty()) {
+				std::cout << "antes de mandar = "; for (auto & c : d._colsPtr) std::cout << c << " "; std::cout << "\n";
+
 				dados.push_back(d); // proc
+				sizes.push_back(SizesMPI(d._values.size(), d._rowsIdx.size(), d._colsPtr.size(), d._colunas.size()));
 			}
 		}
 	}
@@ -144,25 +147,32 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 		#ifdef MPE_LOG
 		MPE_Log_event(evSend1, 0, "Inicio do Send");
 		#endif
+
 		for (int proc = 1; proc < size; ++proc) {
-			sendVectorMPI(proc, dados[proc].values, MPI_DOUBLE);
-			sendVectorMPI(proc, dados[proc].rowsIdx, MPI_INT);
-			sendVectorMPI(proc, dados[proc].colsPtr, MPI_INT);
-			sendVectorMPI(proc, dados[proc].colunas, MPI_INT);
+			MPI_Send(MPI_BOTTOM, 1, sizes[proc].getMpiType(), proc, lentag, MPI_COMM_WORLD);
+			MPI_Send(MPI_BOTTOM, 1, dados[proc].getMpiType(), proc, datatag, MPI_COMM_WORLD);
 		}
+
 		#ifdef MPE_LOG
 		MPE_Log_event(evSend2, 0, "Fim do Send");
 		#endif
 
-		A.setValues(dados[0].values);
-		A.setRowsIdx(dados[0].rowsIdx);
-		A.setColsPtr(dados[0].colsPtr);
-		A.setColunas(dados[0].colunas);
+		A.setValues(dados[0]._values);
+		A.setRowsIdx(dados[0]._rowsIdx);
+		A.setColsPtr(dados[0]._colsPtr);
+		A.setColunas(dados[0]._colunas);
 	} else {
 		#ifdef MPE_LOG
 		MPE_Log_event(evRecv1, 0, "Inicio do Recv");
 		#endif
 
+		SizesMPI s;
+		MPI_Recv(MPI_BOTTOM, 1, s.getMpiType(), 0, lentag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		DadosMPI d(s.getSizeValues(), s.getSizeRowsIdx(), s.getSizeColsPtr(), s.getSizeColunas());
+	    MPI_Recv(MPI_BOTTOM, 1, d.getMpiType(), 0, datatag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+		/*
 		std::vector<double> values_rec;
 		recvVectorMPI(values_rec, MPI_DOUBLE);
 
@@ -174,15 +184,23 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 
 		std::vector<int> colunas_rec;
 		recvVectorMPI(colunas_rec, MPI_INT);
+		*/
 
 		#ifdef MPE_LOG
 		MPE_Log_event(evRecv2, 0, "Fim do Recv");
 		#endif
 
+		/*
 		A.setValues(values_rec);
 		A.setRowsIdx(rowsIdx_rec);
 		A.setColsPtr(colsPtr_rec);
 		A.setColunas(colunas_rec);
+		*/
+
+		A.setValues(d._values);
+		A.setRowsIdx(d._rowsIdx);
+		A.setColsPtr(d._colsPtr);
+		A.setColunas(d._colunas);
 	}
 
 	#ifdef MPE_LOG
