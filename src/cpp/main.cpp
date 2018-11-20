@@ -42,25 +42,6 @@ bool carregarVetoresCSC(const std::string & arquivo, std::vector<double> & value
 	return true;
 }
 
-template<typename T>
-void sendVectorMPI(int proc, std::vector<T> & v, MPI_Datatype type) {
-	const int lentag = 0;
-	const int datatag = 1;
-	int len = v.size();
-	MPI_Send(&len, 1, MPI_INT, proc, lentag, MPI_COMM_WORLD);
-	MPI_Send(v.data(), len, type, proc, datatag, MPI_COMM_WORLD);
-}
-
-template<typename T>
-void recvVectorMPI(std::vector<T> & vec, MPI_Datatype type) {
-	const int lentag = 0;
-	const int datatag = 1;
-	int len;
-	MPI_Recv(&len, 1, MPI_INT, 0, lentag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-	vec.resize(len);
-	MPI_Recv(vec.data(), len, type, 0, datatag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-}
-
 void calcularBoeing(const int rank, const int size, const std::string & arquivo, const int valorVetor) {
 	std::vector<DadosMPI> dados;
 	dados.reserve(size);
@@ -114,8 +95,6 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 			}
 
 			if (!d._values.empty()) {
-				std::cout << "antes de mandar = "; for (auto & c : d._colsPtr) std::cout << c << " "; std::cout << "\n";
-
 				dados.push_back(d); // proc
 				sizes.push_back(SizesMPI(d._values.size(), d._rowsIdx.size(), d._colsPtr.size(), d._colunas.size()));
 			}
@@ -172,30 +151,9 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 		DadosMPI d(s.getSizeValues(), s.getSizeRowsIdx(), s.getSizeColsPtr(), s.getSizeColunas());
 	    MPI_Recv(MPI_BOTTOM, 1, d.getMpiType(), 0, datatag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-		/*
-		std::vector<double> values_rec;
-		recvVectorMPI(values_rec, MPI_DOUBLE);
-
-		std::vector<int> rowsIdx_rec;
-		recvVectorMPI(rowsIdx_rec, MPI_INT);
-
-		std::vector<int> colsPtr_rec;
-		recvVectorMPI(colsPtr_rec, MPI_INT);
-
-		std::vector<int> colunas_rec;
-		recvVectorMPI(colunas_rec, MPI_INT);
-		*/
-
 		#ifdef MPE_LOG
 		MPE_Log_event(evRecv2, 0, "Fim do Recv");
 		#endif
-
-		/*
-		A.setValues(values_rec);
-		A.setRowsIdx(rowsIdx_rec);
-		A.setColsPtr(colsPtr_rec);
-		A.setColunas(colunas_rec);
-		*/
 
 		A.setValues(d._values);
 		A.setRowsIdx(d._rowsIdx);
