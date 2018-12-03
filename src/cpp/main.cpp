@@ -101,26 +101,44 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 		}
 	}
 
-	MPI_Bcast(&nLinhasMatriz, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	SparseMatrix A(rank, size, nLinhasMatriz, nLinhasMatriz);
-
 	#ifdef MPE_LOG
-	int evSend1, evSend2, evRecv1, evRecv2;
+	int evBcast1, evBcast2, evSend1, evSend2, evRecv1, evRecv2, evExec1, evExec2, evAllGather1, evAllGather2;
 
 	MPE_Init_log();
 
+	evBcast1 = MPE_Log_get_event_number();
+	evBcast2 = MPE_Log_get_event_number();
 	evSend1 = MPE_Log_get_event_number();
 	evSend2 = MPE_Log_get_event_number();
 	evRecv1 = MPE_Log_get_event_number();
 	evRecv2 = MPE_Log_get_event_number();
+	evExec1 = MPE_Log_get_event_number();
+	evExec2 = MPE_Log_get_event_number();
+	evAllGather1 = MPE_Log_get_event_number();
+	evAllGather2 = MPE_Log_get_event_number();
 
 	if (rank == 0) {
+		MPE_Describe_state(evBcast1, evBcast2, "Broadcast", "blue");
 		MPE_Describe_state(evSend1, evSend2, "Send", "gray");
 		MPE_Describe_state(evRecv1, evRecv2, "Recv", "red");
+		MPE_Describe_state(evExec1, evExec2, "Execucao", "green");
+		MPE_Describe_state(evAllGather1, evAllGather2, "AllGather", "yellow");
 	}
 
 	MPE_Start_log();
 	#endif
+
+	#ifdef MPE_LOG
+	MPE_Log_event(evBcast1, 0, "Inicio do Broadcast");
+	#endif
+
+	MPI_Bcast(&nLinhasMatriz, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+	#ifdef MPE_LOG
+	MPE_Log_event(evBcast2, 0, "Fim do Broadcast");
+	#endif
+
+	SparseMatrix A(rank, size, nLinhasMatriz, nLinhasMatriz, evAllGather1, evAllGather2);
 
 	if (rank == 0) {
 		#ifdef MPE_LOG
@@ -161,16 +179,22 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 		A.setColunas(d._colunas);
 	}
 
-	#ifdef MPE_LOG
-	MPE_Finish_log("jumpshot");
-	#endif
-
 	#ifdef DEBUG
 	A.printCSC();
 	#endif
 
+	#ifdef MPE_LOG
+	MPE_Log_event(evExec1, 0, "Inicio da Execucao");
+	#endif
+
 	ColumnVector b(nLinhasMatriz, valorVetor); // qual valor ?
 	ColumnVector res = gradienteConjugado(A, b);
+
+	#ifdef MPE_LOG
+	MPE_Log_event(evExec2, 0, "Fim da Execucao");
+
+	MPE_Finish_log("jumpshot");
+	#endif
 
 	if (rank == 0) {
 		res.print();

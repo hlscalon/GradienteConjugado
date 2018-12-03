@@ -6,17 +6,9 @@
 #include <sstream>
 #include "mpi.h"
 
-void SparseMatrix::set(const int row, const int col, const double value) {
-	_values[_colPtr] = value;
-	_rowsIdx[_colPtr] = row;
-
-	if (col != _lastCol) {
-		_colsPtr.push_back(_colPtr);
-		_lastCol = col;
-	}
-
-	_colPtr++;
-}
+#ifdef MPE_LOG
+#include <mpe.h>
+#endif
 
 ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	const int bCols = b.getSize();
@@ -36,7 +28,17 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	}
 
 	ColumnVector res_total(bCols);
+
+	#ifdef MPE_LOG
+	MPE_Log_event(_evAllGather1, 0, "Inicio do AllGather");
+	#endif
+
 	MPI_Allreduce(res.data(), res_total.data(), bCols, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+	#ifdef MPE_LOG
+	MPE_Log_event(_evAllGather2, 0, "Fim do AllGather");
+	#endif
+
 	return res_total;
 }
 

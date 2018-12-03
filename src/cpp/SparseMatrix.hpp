@@ -8,8 +8,9 @@
 class SparseMatrix {
 public:
 
-	SparseMatrix(const int rank, const int nprocs, const int nRows, const int nCols) :
-		_rank(rank), _nprocs(nprocs), _nRows(nRows), _nCols(nCols) {}
+	SparseMatrix(const int rank, const int nprocs, const int nRows, const int nCols, const int evAllGather1, const int evAllGather2) :
+		_rank(rank), _nprocs(nprocs), _nRows(nRows), _nCols(nCols),
+		_evAllGather1(evAllGather1), _evAllGather2(evAllGather2) {}
 
 	inline int getCols() const {
 		return _nCols;
@@ -17,10 +18,6 @@ public:
 
 	inline int getRows() const {
 		return _nRows;
-	}
-
-	inline void updateColsPtr() {
-		_colsPtr.push_back(_colPtr++);
 	}
 
 	inline void setValues(const std::vector<double> & values) {
@@ -39,13 +36,7 @@ public:
 		_colunas = colunas;
 	}
 
-	void set(const int row, const int col, const double value);
-
 	ColumnVector operator*(const ColumnVector & b) const;
-
-	ColumnVector multiBoeing(const ColumnVector & b) const;
-
-	ColumnVector multiMTX(const ColumnVector & b) const;
 
 	void printCSC() const;
 
@@ -54,8 +45,8 @@ private:
 	int _nprocs;
 	int _nRows;
 	int _nCols;
-	int _colPtr;
-	int _lastCol;
+	int _evAllGather1;
+	int _evAllGather2;
 	std::vector<double> _values;
 	std::vector<int> _rowsIdx;
 	std::vector<int> _colsPtr;
