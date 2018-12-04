@@ -20,4 +20,4 @@ iohb:
 all: iohb main run
 
 run:
-	mpirun -np $(NPROCS) ./$(OBJECT) $(ARQ) $(VALORB)
+	mpirun -np $(NPROCS) ./$(OBJECT) $(ARQ) $(VALORB) $(RES)

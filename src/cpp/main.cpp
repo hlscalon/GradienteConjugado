@@ -42,7 +42,7 @@ bool carregarVetoresCSC(const std::string & arquivo, std::vector<double> & value
 	return true;
 }
 
-void calcularBoeing(const int rank, const int size, const std::string & arquivo, const int valorVetor) {
+void calcularBoeing(const int rank, const int size, const std::string & arquivo, const int valorVetor, const int printar) {
 	std::vector<DadosMPI> dados;
 	dados.reserve(size);
 	std::vector<SizesMPI> sizes;
@@ -196,7 +196,7 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 	MPE_Finish_log("jumpshot");
 	#endif
 
-	if (rank == 0) {
+	if (rank == 0 && printar) {
 		res.print();
 	}
 }
@@ -210,9 +210,10 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if (argc != 3) {
+	if (argc != 4) {
 		std::cerr << "<$1> = caminho do arquivo\n"
-				  << "<$2> = valor do vetor b.\n";
+				  << "<$2> = valor do vetor b.\n"
+				  << "<$3> = printar resultado (0 ou 1).\n";
 
 		MPI_Abort(MPI_COMM_WORLD, 1);
 		return -1;
@@ -220,8 +221,9 @@ int main(int argc, char *argv[]) {
 
 	std::string arquivo = argv[1];
 	int valorVetor = std::atoi(argv[2]);
+	int printar = std::atoi(argv[3]);
 
-	calcularBoeing(rank, size, arquivo, valorVetor);
+	calcularBoeing(rank, size, arquivo, valorVetor, printar);
 
 	MPI_Finalize();
 
