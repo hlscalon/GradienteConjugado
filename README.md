@@ -1,16 +1,16 @@
-Para compilar basta entrar no diretório e rodar:
+Para compilar:
 
-$ make
+$ make all
 
 Para rodar, executar:
 
-$ ./gradiente_conjugado arquivos/bcsstk01.rsa 1 5 > res_bcsstk01.txt
+$ make run NPROCS=4 ARQ=arquivos/bcsstk01.rsa VALORB=5 RES=1 > res_bcsstk01.txt
 
 Parâmetros:
 
 - <$1> = Caminho do arquivo.
-- <$2> = Formato do arquivo (1 = Harwell-Boeing, 2 = MTX).
-- <$3> = Valor do vetor b.
+- <$2> = Valor do vetor b.
+- <$3> = Printar resultado (0 ou 1)
 
 Saída:
 
