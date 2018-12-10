@@ -11,6 +11,7 @@ Parâmetros:
 - <$1> = Caminho do arquivo.
 - <$2> = Valor do vetor b.
 - <$3> = Printar resultado (0 ou 1)
+- <$4> = Printar o tempo (0 ou 1)
 
 Saída:
 
