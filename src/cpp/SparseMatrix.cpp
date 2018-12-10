@@ -30,13 +30,13 @@ ColumnVector SparseMatrix::operator*(const ColumnVector & b) const {
 	ColumnVector res_total(bCols);
 
 	#ifdef MPE_LOG
-	MPE_Log_event(_evAllGather1, 0, "Inicio do AllGather");
+	MPE_Log_event(_evAllReduce1, 0, "Inicio do AllReduce");
 	#endif
 
 	MPI_Allreduce(res.data(), res_total.data(), bCols, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 
 	#ifdef MPE_LOG
-	MPE_Log_event(_evAllGather2, 0, "Fim do AllGather");
+	MPE_Log_event(_evAllReduce2, 0, "Fim do AllReduce");
 	#endif
 
 	return res_total;

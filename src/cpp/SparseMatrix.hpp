@@ -8,9 +8,9 @@
 class SparseMatrix {
 public:
 
-	SparseMatrix(const int rank, const int nprocs, const int nRows, const int nCols, const int evAllGather1, const int evAllGather2) :
+	SparseMatrix(const int rank, const int nprocs, const int nRows, const int nCols, const int evAllReduce1, const int evAllReduce2) :
 		_rank(rank), _nprocs(nprocs), _nRows(nRows), _nCols(nCols),
-		_evAllGather1(evAllGather1), _evAllGather2(evAllGather2) {}
+		_evAllReduce1(evAllReduce1), _evAllReduce2(evAllReduce2) {}
 
 	inline int getCols() const {
 		return _nCols;
@@ -45,8 +45,8 @@ private:
 	int _nprocs;
 	int _nRows;
 	int _nCols;
-	int _evAllGather1;
-	int _evAllGather2;
+	int _evAllReduce1;
+	int _evAllReduce2;
 	std::vector<double> _values;
 	std::vector<int> _rowsIdx;
 	std::vector<int> _colsPtr;

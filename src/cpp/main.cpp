@@ -102,7 +102,7 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 	}
 
 	#ifdef MPE_LOG
-	int evBcast1, evBcast2, evSend1, evSend2, evRecv1, evRecv2, evExec1, evExec2, evAllGather1, evAllGather2;
+	int evBcast1, evBcast2, evSend1, evSend2, evRecv1, evRecv2, evExec1, evExec2, evAllReduce1, evAllReduce2;
 
 	MPE_Init_log();
 
@@ -114,15 +114,15 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 	evRecv2 = MPE_Log_get_event_number();
 	evExec1 = MPE_Log_get_event_number();
 	evExec2 = MPE_Log_get_event_number();
-	evAllGather1 = MPE_Log_get_event_number();
-	evAllGather2 = MPE_Log_get_event_number();
+	evAllReduce1 = MPE_Log_get_event_number();
+	evAllReduce2 = MPE_Log_get_event_number();
 
 	if (rank == 0) {
 		MPE_Describe_state(evBcast1, evBcast2, "Broadcast", "blue");
 		MPE_Describe_state(evSend1, evSend2, "Send", "gray");
 		MPE_Describe_state(evRecv1, evRecv2, "Recv", "red");
 		MPE_Describe_state(evExec1, evExec2, "Execucao", "green");
-		MPE_Describe_state(evAllGather1, evAllGather2, "AllGather", "yellow");
+		MPE_Describe_state(evAllReduce1, evAllReduce2, "AllReduce", "yellow");
 	}
 
 	MPE_Start_log();
@@ -138,7 +138,7 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 	MPE_Log_event(evBcast2, 0, "Fim do Broadcast");
 	#endif
 
-	SparseMatrix A(rank, size, nLinhasMatriz, nLinhasMatriz, evAllGather1, evAllGather2);
+	SparseMatrix A(rank, size, nLinhasMatriz, nLinhasMatriz, evAllReduce1, evAllReduce2);
 
 	if (rank == 0) {
 		#ifdef MPE_LOG
@@ -210,20 +210,30 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if (argc != 4) {
+	if (argc != 5) {
 		std::cerr << "<$1> = caminho do arquivo\n"
 				  << "<$2> = valor do vetor b.\n"
-				  << "<$3> = printar resultado (0 ou 1).\n";
+				  << "<$3> = printar resultado (0 ou 1).\n"
+				  << "<$4> = printar tempo (0 ou 1).\n";
 
 		MPI_Abort(MPI_COMM_WORLD, 1);
 		return -1;
 	}
 
+	double inicio = MPI_Wtime();
+
 	std::string arquivo = argv[1];
 	int valorVetor = std::atoi(argv[2]);
-	int printar = std::atoi(argv[3]);
+	int printarRes = std::atoi(argv[3]);
+	int printarTempo = std::atoi(argv[4]);
 
-	calcularBoeing(rank, size, arquivo, valorVetor, printar);
+	calcularBoeing(rank, size, arquivo, valorVetor, printarRes);
+
+	double fim = MPI_Wtime();
+
+	if (rank == 0 && printarTempo) {
+		std::cout << "Tempo: " << (fim - inicio) << "\n";
+	}
 
 	MPI_Finalize();
 
