@@ -4,7 +4,7 @@ $ make all
 
 Para rodar, executar:
 
-$ make run NPROCS=4 ARQ=arquivos/bcsstk01.rsa VALORB=5 RES=1 > res_bcsstk01.txt
+$ make run NPROCS=4 ARQ=arquivos/bcsstruc/bcsstk17.rsa VALORB=5 RES=1 TEMPO=0 > res_bcsstk01.txt
 
 Parâmetros:
 
