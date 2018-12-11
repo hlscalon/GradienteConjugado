@@ -12,7 +12,7 @@ Parâmetros:
 - <$2> = Valor do vetor b.
 - <$3> = Printar resultado (0 ou 1)
 - <$4> = Printar o tempo (0 ou 1)
-- <$5> = printar iteracoes (0 ou 1)
+- <$5> = Printar iteracoes (0 ou 1)
 
 Saída:
 
