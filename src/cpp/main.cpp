@@ -42,7 +42,7 @@ bool carregarVetoresCSC(const std::string & arquivo, std::vector<double> & value
 	return true;
 }
 
-void calcularBoeing(const int rank, const int size, const std::string & arquivo, const int valorVetor, const int printar) {
+void calcularBoeing(const int rank, const int size, const std::string & arquivo, const int valorVetor, const int printar, const int printarIteracoes) {
 	std::vector<DadosMPI> dados;
 	dados.reserve(size);
 	std::vector<SizesMPI> sizes;
@@ -188,7 +188,8 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 	#endif
 
 	ColumnVector b(nLinhasMatriz, valorVetor); // qual valor ?
-	ColumnVector res = gradienteConjugado(A, b);
+	int iteracoes = 0;
+	ColumnVector res = gradienteConjugado(A, b, iteracoes);
 
 	#ifdef MPE_LOG
 	MPE_Log_event(evExec2, 0, "Fim da Execucao");
@@ -198,6 +199,10 @@ void calcularBoeing(const int rank, const int size, const std::string & arquivo,
 
 	if (rank == 0 && printar) {
 		res.print();
+	}
+
+	if (rank == 0 && printarIteracoes) {
+		std::cout << "Iteracoes = " << iteracoes << "\n";
 	}
 }
 
@@ -210,11 +215,14 @@ int main(int argc, char *argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if (argc != 5) {
-		std::cerr << "<$1> = caminho do arquivo\n"
-				  << "<$2> = valor do vetor b.\n"
-				  << "<$3> = printar resultado (0 ou 1).\n"
-				  << "<$4> = printar tempo (0 ou 1).\n";
+	if (argc != 6) {
+		std::cerr
+			<< "<$1> = caminho do arquivo\n"
+			<< "<$2> = valor do vetor b.\n"
+			<< "<$3> = printar resultado (0 ou 1).\n"
+			<< "<$4> = printar tempo (0 ou 1).\n"
+			<< "<$5> = printar iteracoes (0 ou 1).\n"
+		;
 
 		MPI_Abort(MPI_COMM_WORLD, 1);
 		return -1;
@@ -224,14 +232,15 @@ int main(int argc, char *argv[]) {
 
 	std::string arquivo = argv[1];
 	int valorVetor = std::atoi(argv[2]);
-	int printarRes = std::atoi(argv[3]);
-	int printarTempo = std::atoi(argv[4]);
+	int printRes = std::atoi(argv[3]);
+	int printTempo = std::atoi(argv[4]);
+	int printIteracoes = std::atoi(argv[5]);
 
-	calcularBoeing(rank, size, arquivo, valorVetor, printarRes);
+	calcularBoeing(rank, size, arquivo, valorVetor, printRes, printIteracoes);
 
 	double fim = MPI_Wtime();
 
-	if (rank == 0 && printarTempo) {
+	if (rank == 0 && printTempo) {
 		std::cout << "Tempo: " << (fim - inicio) << "\n";
 	}
 

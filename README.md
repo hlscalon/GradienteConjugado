@@ -4,7 +4,7 @@ $ make all
 
 Para rodar, executar:
 
-$ make run NPROCS=4 ARQ=arquivos/bcsstruc/bcsstk17.rsa VALORB=5 RES=1 TEMPO=0 > res_bcsstk01.txt
+$ make run NPROCS=4 ARQ=arquivos/bcsstruc/bcsstk17.rsa VALORB=5 RES=1 TEMPO=0 ITER=0 > res_bcsstk01.txt
 
 Parâmetros:
 
@@ -12,6 +12,7 @@ Parâmetros:
 - <$2> = Valor do vetor b.
 - <$3> = Printar resultado (0 ou 1)
 - <$4> = Printar o tempo (0 ou 1)
+- <$5> = printar iteracoes (0 ou 1)
 
 Saída:
 
